@@ -53,10 +53,6 @@ export default {
           "text-2": "hsl(var(--datum-text-2))",
           "text-3": "hsl(var(--datum-text-3))",
         },
-        "brand-dark": {
-          DEFAULT: "hsl(var(--brand-dark))",
-          foreground: "hsl(var(--brand-dark-foreground))",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",

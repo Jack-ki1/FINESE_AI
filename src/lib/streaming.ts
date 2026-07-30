@@ -10,7 +10,7 @@ interface StreamChatParams {
   onConnect?: () => void;
   onDelta: (text: string) => void;
   onDone: () => void;
-  onError: (error: string) => void;
+  onError: (error: string, status?: number) => void;
 }
 
 export async function streamChat({ messages, datasetContext, fileHash, signal, onConnect, onDelta, onDone, onError }: StreamChatParams) {
@@ -41,7 +41,7 @@ export async function streamChat({ messages, datasetContext, fileHash, signal, o
       const err = await resp.json();
       errMsg = err.error || errMsg;
     } catch {}
-    onError(errMsg);
+    onError(errMsg, resp.status);
     return;
   }
 

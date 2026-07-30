@@ -314,22 +314,31 @@ export const useDatumStore = create<DatumStore>()(
                       : s),
                   });
                 },
-                onError: (error) => { throw new Error(error); },
+                onError: (error, status) => {
+                  const err: any = new Error(error);
+                  err.status = status;
+                  throw err;
+                },
               });
             } catch (err: any) {
               if (ac.signal.aborted) {
                 set({ isAiLoading: false, abortController: null, connectionStatus: 'idle' });
                 return;
               }
-              if (attempt < maxAttempts) {
+              // 402 (no credits) / 401 / 403 are terminal — retrying wastes time.
+              const terminal = [401, 402, 403].includes(err?.status);
+              if (!terminal && attempt < maxAttempts) {
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
                 await new Promise(r => setTimeout(r, delay));
                 fullText = '';
                 return tryStream();
               }
+              const content = err?.status === 402
+                ? `### ⚠️ AI credits exhausted\n\nThis workspace has run out of AI credits, so the assistant can't respond right now.\n\nAdd credits in **Settings → Plans & credits**, then retry your message.`
+                : `⚠️ **Error after ${attempt} attempt${attempt > 1 ? 's' : ''}:** ${err?.message || 'Unknown'}`;
               const errMsg: ChatMessage = {
                 id: assistantId, role: 'assistant',
-                content: `⚠️ **Error after ${attempt} attempts:** ${err?.message || 'Unknown'}`,
+                content,
                 timestamp: now(),
               };
               const cur = get().messages;

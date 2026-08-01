@@ -65,7 +65,12 @@ Deno.serve(async (req) => {
     }
     const text = await blob.text();
     return new Response(text, {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        // Datasets are content-hash addressed and immutable -> safe to cache privately
+        "Cache-Control": "private, max-age=3600, immutable",
+      },
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), {

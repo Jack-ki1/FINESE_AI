@@ -7,6 +7,7 @@ import { KeyboardShortcuts } from "@/components/chat/KeyboardShortcuts";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import DataViewer from "./pages/DataViewer";
@@ -25,6 +26,7 @@ const App = () => (
           <KeyboardShortcuts />
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Index />} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/chat/:sessionId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />

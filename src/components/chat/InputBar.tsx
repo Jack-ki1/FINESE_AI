@@ -2,8 +2,8 @@ import { useState, useRef, useCallback, useMemo } from 'react';
 import { useDatumStore } from '@/store/datum.store';
 import { parseFile } from '@/lib/parsers';
 import { Upload, Sparkles, ArrowUp, Brain, BarChart3, Wrench, Settings, Lightbulb, Bug, BookOpen, FileText, Square, Database, X } from 'lucide-react';
-
-const MAX_BYTES = 500 * 1024 * 1024; // 500MB
+import { toast } from 'sonner';
+import { MAX_FILE_BYTES, MAX_FILE_MB } from '@/lib/constants';
 
 function getSmartSuggestions(profile: any[] | null): { text: string; prompt: string }[] {
   if (!profile) return [];
@@ -61,8 +61,8 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
   }, [text, isAiLoading, sendMessage, onSend]);
 
   const handleFile = useCallback(async (file: File) => {
-    if (file.size > MAX_BYTES) {
-      alert(`File too large (max ${Math.round(MAX_BYTES / 1024 / 1024)}MB)`);
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(`"${file.name}" is too large`, { description: `Maximum file size is ${MAX_FILE_MB}MB.` });
       return;
     }
     try {
@@ -72,9 +72,10 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
       });
       setIngestProgress(100, 'profiling');
       await ingest(data, file.name);
+      toast.success(`Loaded ${file.name}`, { description: `${data.length.toLocaleString()} rows ready for analysis.` });
     } catch (e) {
       setIngestProgress(0);
-      alert('Failed to parse file: ' + (e as Error).message);
+      toast.error('Could not read that file', { description: (e as Error).message });
     }
   }, [ingest, setIngestProgress]);
 

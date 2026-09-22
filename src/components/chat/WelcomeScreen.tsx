@@ -24,7 +24,7 @@ export function WelcomeScreen({ onPrompt }: { onPrompt: (text: string) => void }
   const { ingest } = useDatumStore();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 py-12">
+    <div className="flex flex-col items-center justify-center min-h-full px-4 sm:px-6 py-8 sm:py-12">
       {/* Hero */}
       <div className="relative mb-5">
         <span aria-hidden className="absolute inset-0 rounded-2xl bg-brand-gradient blur-xl opacity-40" />
@@ -32,16 +32,16 @@ export function WelcomeScreen({ onPrompt }: { onPrompt: (text: string) => void }
           <img src={fineseLogo} alt="FINESE AI" className="w-full h-full rounded-[14px] object-cover" />
         </div>
       </div>
-      <h1 className="font-display font-extrabold text-4xl mb-2 tracking-tight">
+      <h1 className="font-display font-extrabold text-2xl sm:text-4xl mb-2 tracking-tight text-center">
         <span className="text-foreground">What can I help </span>
         <span className="text-brand-gradient">with?</span>
       </h1>
-      <p className="text-muted-foreground text-[15px] text-center max-w-md mb-10 leading-relaxed">
+      <p className="text-muted-foreground text-[13px] sm:text-[15px] text-center max-w-md mb-8 sm:mb-10 leading-relaxed">
         Upload data for analysis, or ask anything — debugging, system design, experiments, research synthesis.
       </p>
 
       {/* Starter cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl w-full mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl w-full mb-8 sm:mb-10">
         {starters.map(s => (
           <button key={s.title} onClick={() => onPrompt(s.prompt)}
             className="group flex flex-col gap-2 p-4 rounded-2xl border border-border bg-card hover:border-primary/25 hover:shadow-md text-left transition-all duration-200">
@@ -59,7 +59,7 @@ export function WelcomeScreen({ onPrompt }: { onPrompt: (text: string) => void }
       {/* Sample datasets */}
       <div className="flex flex-col items-center gap-2.5">
         <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Try a sample dataset</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {samples.map(s => (
             <button key={s.name} onClick={() => ingest(s.data, s.name)}
               className="px-4 py-2 rounded-xl border border-border bg-card text-[13px] text-muted-foreground hover:text-foreground hover:border-primary/25 hover:shadow-sm transition-all duration-200">

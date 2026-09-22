@@ -26,7 +26,7 @@ export function ChatSearch() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border rounded-xl shadow-lg z-50 animate-fade-slide">
+          <div className="absolute right-0 top-full mt-1 w-[min(20rem,calc(100vw-2rem))] bg-card border border-border rounded-xl shadow-lg z-50 animate-fade-slide">
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
               <Search className="w-4 h-4 text-muted-foreground shrink-0" />
               <input

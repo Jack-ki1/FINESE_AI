@@ -23,7 +23,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
   };
 
   return (
-    <div className={`group flex gap-3.5 px-6 py-4 animate-fade-slide ${isUser ? 'flex-row-reverse' : ''} ${isPinned ? 'bg-primary/3 border-l-2 border-primary/20' : ''}`}>
+    <div className={`group flex gap-2.5 sm:gap-3.5 px-3 sm:px-6 py-4 animate-fade-slide ${isUser ? 'flex-row-reverse' : ''} ${isPinned ? 'bg-primary/3 border-l-2 border-primary/20' : ''}`}>
       {/* Avatar */}
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm overflow-hidden ${
         isUser ? 'bg-muted text-muted-foreground' : ''
@@ -32,7 +32,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
       </div>
 
       {/* Content */}
-      <div className={`flex flex-col gap-2.5 max-w-[85%] min-w-0 ${isUser ? 'items-end' : ''}`}>
+      <div className={`flex flex-col gap-2.5 max-w-[92%] sm:max-w-[85%] min-w-0 ${isUser ? 'items-end' : ''}`}>
         {isUser ? (
           <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-primary text-primary-foreground text-sm leading-relaxed">
             {message.content}
@@ -66,7 +66,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground/50">{time}</span>
           {!isUser && message.content && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               <button onClick={handleCopy} className="p-1 rounded-md hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors" title="Copy response">
                 {copied ? <Check className="w-3 h-3 text-primary" /> : <Copy className="w-3 h-3" />}
               </button>

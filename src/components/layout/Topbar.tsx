@@ -16,12 +16,12 @@ export function Topbar() {
   const catCols = profile?.filter(p => p.type === 'categorical').length || 0;
 
   return (
-    <header className="h-14 min-h-[56px] flex items-center gap-4 px-5 border-b border-border bg-card/80 backdrop-blur-sm">
-      <button onClick={toggleSidebar} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+    <header className="h-14 min-h-[56px] flex items-center gap-2 sm:gap-4 px-3 sm:px-5 border-b border-border bg-card/80 backdrop-blur-sm">
+      <button onClick={toggleSidebar} aria-label="Toggle menu" className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
         {sidebarOpen ? <PanelLeftClose className="w-[18px] h-[18px]" /> : <PanelLeft className="w-[18px] h-[18px]" />}
       </button>
 
-      <span className="text-sm font-semibold text-foreground truncate">
+      <span className="text-sm font-semibold text-foreground truncate min-w-0">
         {session?.title || 'New Session'}
       </span>
 
@@ -32,7 +32,7 @@ export function Topbar() {
       </kbd>
 
       {isLoaded && (
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="hidden lg:flex items-center gap-2 ml-auto min-w-0 overflow-x-auto scrollbar-hide">
           <Chip color="blue">{fileName}</Chip>
           <Chip color="cyan">{formatNumber(dataset?.length || 0)} rows</Chip>
           <Chip color="violet">{profile?.length} cols</Chip>
@@ -53,14 +53,22 @@ export function Topbar() {
         </div>
       )}
 
+      {/* Compact data access for small screens */}
+      {isLoaded && (
+        <button onClick={() => navigate('/data/original')} aria-label="View data"
+          className="lg:hidden ml-auto p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
+          <Database className="w-[18px] h-[18px]" />
+        </button>
+      )}
+
       {!isLoaded && <div className="ml-auto" />}
 
       {/* Right-side actions */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 shrink-0">
         <ChatSearch />
         <ExportButton />
         <ThemeToggle />
-        <button onClick={toggleChangelog} className={`p-1.5 rounded-lg transition-colors ${changelogOpen ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+        <button onClick={toggleChangelog} aria-label="Toggle changelog" className={`p-1.5 rounded-lg transition-colors ${changelogOpen ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
           <Clock className="w-[18px] h-[18px]" />
         </button>
       </div>

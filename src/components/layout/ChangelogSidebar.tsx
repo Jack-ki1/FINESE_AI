@@ -24,11 +24,16 @@ const actionColors: Record<string, string> = {
 
 export function ChangelogSidebar() {
   const { changelog, changelogOpen, toggleChangelog, removeChangelogEntry } = useDatumStore();
+  const isMobile = useIsMobile();
 
   if (!changelogOpen) return null;
 
   return (
-    <aside className="w-[260px] min-w-[260px] h-full flex flex-col border-l border-border bg-card overflow-hidden">
+    <>
+      {isMobile && <div className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm" onClick={toggleChangelog} />}
+      <aside className={`w-[260px] min-w-[260px] flex flex-col border-l border-border bg-card overflow-hidden ${
+        isMobile ? 'fixed inset-y-0 right-0 z-50 h-[100dvh] shadow-2xl animate-fade-slide' : 'h-full'
+      }`}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
@@ -38,6 +43,7 @@ export function ChangelogSidebar() {
           <X className="w-4 h-4" />
         </button>
       </div>
+
 
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {changelog.length === 0 ? (

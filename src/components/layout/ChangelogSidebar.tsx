@@ -1,6 +1,7 @@
 import { useDatumStore } from '@/store/datum.store';
 import { X, Upload, Wand2, Filter, Trash2, BarChart3, Search, Clock, GripVertical } from 'lucide-react';
 import type { ChangelogEntry } from '@/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const actionIcons: Record<string, React.ElementType> = {
   upload: Upload,
@@ -60,7 +61,8 @@ export function ChangelogSidebar() {
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

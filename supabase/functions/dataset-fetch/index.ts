@@ -2,14 +2,10 @@
 // The datasets table and storage bucket are locked down (no anon access);
 // this function uses service_role to read them on behalf of the client.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const authHeader = req.headers.get("Authorization");
@@ -30,7 +26,8 @@ Deno.serve(async (req) => {
     }
     const user_id = userData.user.id;
 
-    const { file_hash } = await req.json();
+    const body = await req.json();
+    const { file_hash, profile_only } = body;
     if (!file_hash || typeof file_hash !== "string") {
       return new Response(JSON.stringify({ error: "file_hash required" }), {
         status: 400,
@@ -44,7 +41,7 @@ Deno.serve(async (req) => {
     );
     const { data: meta, error: metaErr } = await supa
       .from("datasets")
-      .select("storage_path")
+      .select("storage_path, file_name, row_count, col_count")
       .eq("file_hash", file_hash)
       .eq("user_id", user_id)
       .maybeSingle();
@@ -54,11 +51,48 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Lightweight profile-only fetch — avoids downloading full dataset when caller only needs metadata.
+    if (profile_only) {
+      const { data: profileRow } = await supa
+        .from("dataset_profiles")
+        .select("profile, correlations, advanced, health_score")
+        .eq("file_hash", file_hash)
+        .maybeSingle();
+      if (!profileRow) {
+        return new Response(JSON.stringify({ error: "Profile not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(
+        JSON.stringify({
+          file_hash,
+          file_name: meta.file_name,
+          row_count: meta.row_count,
+          col_count: meta.col_count,
+          profile: profileRow.profile,
+          correlations: profileRow.correlations,
+          advanced: profileRow.advanced,
+          health_score: profileRow.health_score,
+          cached: true,
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Cache-Control": "private, max-age=3600",
+          },
+        },
+      );
+    }
+
     const { data: blob, error } = await supa.storage
       .from("datasets")
       .download(meta.storage_path);
     if (error || !blob) {
-      return new Response(JSON.stringify({ error: "Download failed" }), {
+      console.error("dataset-fetch download failed:", error);
+      return new Response(JSON.stringify({ error: "Download failed. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,9 +107,17 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
+    if (e instanceof Response) {
+      const body = await e.text().catch(() => "");
+      return new Response(body || JSON.stringify({ error: "Unauthorized" }), {
+        status: e.status,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+    console.error("dataset-fetch error:", e);
+    return new Response(JSON.stringify({ error: "Download failed. Please try again." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

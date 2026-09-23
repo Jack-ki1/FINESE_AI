@@ -6,14 +6,14 @@
 
 ### **Intelligent Data Analysis**
 - **Automatic Dataset Profiling**: Instant column-level analysis including types, nulls, outliers, distributions, and correlations
-- **Server-Side Statistical Compute**: All statistics computed on real data via tool-calls—never fabricated numbers
-- **Rich Artifact Rendering**: Charts, tables, statistical panels, code blocks, and more rendered inline in chat
-- **Multi-Dataset Support**: Upload and switch between multiple datasets within a single session
+- **Server-Side Statistical Compute**: Verified statistics (describe, correlation, t-test, ANOVA, regression, clustering, drift) computed on real data via tool-calls; unverified design artifacts are clearly marked "Estimated"
+- **Rich Artifact Rendering**: Charts, tables, statistical panels, code blocks, and more rendered inline in chat — verified artifacts show a "Verified · real compute" badge
+- **Multi-Dataset Support**: Upload and switch between multiple datasets within a single session (profile fetched without re-uploading full data)
 
 ### **Machine Learning & Data Science**
-- **Real Model Training**: Train classifiers (Naive Bayes) with actual train/test splits
-- **Comprehensive Evaluation**: Confusion matrices, precision/recall/F1 scores, feature importance—all verified
-- **Advanced Analytics**: Hypothesis testing (t-tests, chi-square), correlation analysis, outlier detection
+- **Real Model Training**: Train classifiers (Naive Bayes) with actual train/test splits; linear regression via OLS
+- **Comprehensive Evaluation**: Confusion matrices, precision/recall/F1 scores, feature importance — all verified when from `train_classifier`; drift via `drift_check` (PSI+KS)
+- **Advanced Analytics**: Hypothesis testing (Welch's t-test, one-way ANOVA), correlation, outlier detection, K-Means clustering with silhouette
 - **Feature Engineering**: Automated feature selection and importance ranking
 
 ### **Data Engineering Capabilities**
@@ -111,7 +111,7 @@ FINESE AI follows a clean separation between frontend and backend:
 
 - **Node.js** 18+ and npm/yarn/pnpm
 - **Supabase account** (free tier works)
-- **Lovable API key** for AI model access
+- **AI provider API key** (OpenAI, Anthropic, or any OpenAI-compatible gateway)
 
 ### Installation
 
@@ -132,7 +132,12 @@ FINESE AI follows a clean separation between frontend and backend:
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
-   LOVABLE_API_KEY=your_lovable_api_key
+   # any OpenAI-compatible endpoint
+   AI_GATEWAY_URL=https://api.openai.com/v1
+   AI_API_KEY=your_openai_api_key
+   AI_MODEL=gpt-4o-mini
+   # Supabase edge functions also need:
+   # AI_GATEWAY_URL, AI_API_KEY (or OPENAI_API_KEY), AI_MODEL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
    ```
 
 4. **Initialize Supabase**
@@ -238,8 +243,8 @@ https://your-project.supabase.co/functions/v1/mcp
 ### Backend
 - **Platform**: Supabase (PostgreSQL + Edge Functions + Storage)
 - **Runtime**: Deno (edge functions)
-- **AI Gateway**: Lovable AI (Gemini 3.1 Pro Preview)
-- **Authentication**: Supabase Auth (email/password, OAuth)
+- **AI Gateway**: Any OpenAI-compatible endpoint (OpenAI, Anthropic via proxy, self-hosted) — configured via `AI_GATEWAY_URL`/`AI_API_KEY`/`AI_MODEL`
+- **Authentication**: Supabase Auth (email/password, OAuth via `supabase.auth.signInWithOAuth`)
 - **Database**: PostgreSQL with Row Level Security
 - **Storage**: Supabase Storage (namespaced by user)
 
@@ -334,10 +339,13 @@ FINESE_AI/
 |----------|-------------|----------|
 | `VITE_SUPABASE_URL` | Supabase project URL | Yes |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key | Yes |
-| `LOVABLE_API_KEY` | Lovable AI gateway API key | Yes |
+| `AI_GATEWAY_URL` | AI gateway base URL (e.g. `https://api.openai.com/v1`) | Yes |
+| `AI_API_KEY` | AI provider API key (`OPENAI_API_KEY` also accepted) | Yes |
+| `AI_MODEL` | Model name (e.g. `gpt-4o-mini`) | No (default `gpt-4o-mini`) |
 | `SUPABASE_URL` | (Edge functions) Supabase URL | Yes |
 | `SUPABASE_ANON_KEY` | (Edge functions) Anon key | Yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | (Edge functions) Service role key | Yes |
+| `FALLBACK_MODELS` | Comma-separated fallback models | No |
 
 ## 🧪 Testing
 
@@ -400,11 +408,11 @@ Test configuration: `playwright.config.ts`
 4. **Submit a pull request**
 
 ### Code Style Guidelines
-- **TypeScript**: Strict mode enabled, no implicit any
+- **TypeScript**: Incremental strictness — `strictNullChecks` and `noImplicitAny` enabled; full `strict` mode tracked but not yet enforced (see `tsconfig.app.json`)
 - **Components**: Functional components with hooks
 - **Naming**: PascalCase for components, camelCase for functions/variables
 - **Imports**: Grouped by source (React, third-party, internal)
-- **Error Handling**: Try-catch with user-friendly messages
+- **Error Handling**: Try-catch with user-friendly messages (generic to client, details in server logs)
 
 ## 🐛 Troubleshooting
 
@@ -417,12 +425,12 @@ Test configuration: `playwright.config.ts`
 
 **Dataset upload fails**
 - File must be <20MB and <250K rows
-- CSV must have consistent column counts
+- CSV should have consistent column counts — schema drift is now detected server-side and surfaced as a warning (see `dataset-ingest` logs / `advanced.warnings`)
 - Check network connectivity to Supabase
 
 **AI not responding**
-- Verify `LOVABLE_API_KEY` is set
-- Check browser network tab for 402 (credits exhausted) or 429 (rate limit)
+- Verify `AI_API_KEY` / `AI_GATEWAY_URL` / `AI_MODEL` are set
+- Check browser network tab for 402/429 (credits/rate limit) or 401 (bad key)
 - Review Supabase function logs: `supabase functions logs datum-chat`
 
 **Charts not rendering**
@@ -449,7 +457,6 @@ supabase functions logs dataset-ingest --tail
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detailed architecture documentation
 - **[Supabase Docs](https://supabase.com/docs)**: Backend platform documentation
 - **[shadcn/ui](https://ui.shadcn.com/)**: UI component library
-- **[Lovable.dev](https://lovable.dev/)**: AI gateway and MCP framework
 - **[Recharts](https://recharts.org/)**: Charting library
 - **[Zustand](https://zustand-demo.pmnd.rs/)**: State management
 
@@ -461,7 +468,6 @@ This project is proprietary software. All rights reserved.
 
 Built with:
 - [Supabase](https://supabase.com/) - Backend platform
-- [Lovable.dev](https://lovable.dev/) - AI gateway and MCP
 - [shadcn/ui](https://ui.shadcn.com/) - Component library
 - [Vite](https://vitejs.dev/) - Build tool
 - [Tailwind CSS](https://tailwindcss.com/) - Styling framework

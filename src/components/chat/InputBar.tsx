@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useDatumStore } from '@/store/datum.store';
 import { parseFile } from '@/lib/parsers';
-import { Upload, Sparkles, ArrowUp, Brain, BarChart3, Wrench, Settings, Lightbulb, Bug, BookOpen, FileText, Square, Database, X } from 'lucide-react';
+import { Upload, ArrowUp, Search, Square, Database, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAX_FILE_BYTES, MAX_FILE_MB } from '@/lib/constants';
 
@@ -98,19 +98,15 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
   };
 
   return (
-    <div className="w-full max-w-[840px] mx-auto px-4 pb-5 relative">
-      {/* Smart suggestions floating panel */}
+    <div className="w-full max-w-[760px] mx-auto px-4 pb-4 relative">
+      {/* Smart suggestions — ChatGPT style pills */}
       {showSuggestions && (
-        <div className="absolute bottom-full left-4 right-4 mb-2 bg-card border border-border rounded-xl shadow-lg p-2 space-y-1 z-10 animate-fade-slide">
-          <div className="flex items-center gap-1.5 px-2 py-1">
-            <Lightbulb className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[11px] font-medium text-muted-foreground">Suggested analyses</span>
-          </div>
+        <div className="absolute bottom-full left-4 right-4 mb-3 flex flex-wrap gap-2 justify-center z-10">
           {smartSuggestions.map((s, i) => (
             <button
               key={i}
               onClick={() => handleSuggestionClick(s.prompt)}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm text-foreground hover:bg-primary/5 hover:text-primary transition-colors"
+              className="px-3 py-1.5 rounded-full text-xs bg-white dark:bg-[#2f2f2f] border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 shadow-sm"
             >
               {s.text}
             </button>
@@ -119,130 +115,90 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
       )}
 
       <div
-        className={`rounded-2xl border bg-card shadow-sm transition-all duration-200 ${
-          dragOver ? 'border-primary shadow-lg ring-2 ring-primary/20' : 'border-border'
-        } focus-within:border-primary/40 focus-within:shadow-md focus-within:ring-2 focus-within:ring-primary/10`}
+        className={`rounded-[26px] border bg-white dark:bg-[#2f2f2f] shadow-sm transition-all duration-200 ${
+          dragOver ? 'border-black/20 dark:border-white/20 shadow-lg ring-2 ring-black/5 dark:ring-white/5' : 'border-black/10 dark:border-white/10'
+        } ${focused ? 'shadow-md ring-1 ring-black/5 dark:ring-white/10' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
       >
-        {/* Loaded datasets bar (multi-file) */}
+        {/* Multi-file bar — minimal */}
         {extraDatasets.length > 0 && (
-          <div className="flex items-center gap-1.5 px-3 pt-2.5 overflow-x-auto scrollbar-hide">
-            <Database className="w-3 h-3 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-1.5 px-4 pt-3 overflow-x-auto">
             {extraDatasets.map(d => {
               const active = d.fileHash === fileHash;
               return (
-                <span key={d.fileHash}
-                  className={`group inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md text-[10px] border transition-colors ${
-                    active ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                  }`}>
-                  <button onClick={() => !active && switchActiveDataset(d.fileHash)}
-                    className="font-mono truncate max-w-[140px]" title={`${d.fileName} (${d.rowCount.toLocaleString()} rows)`}>
-                    {d.fileName}
-                  </button>
-                  <button onClick={() => removeExtraDataset(d.fileHash)}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity" aria-label="Remove">
-                    <X className="w-2.5 h-2.5" />
-                  </button>
+                <span key={d.fileHash} className={`group inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-full text-xs border ${active ? 'bg-black text-white dark:bg-white dark:text-black border-transparent' : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5'}`}>
+                  <button onClick={() => !active && switchActiveDataset(d.fileHash)} className="font-medium truncate max-w-[120px]">{d.fileName}</button>
+                  <button onClick={() => removeExtraDataset(d.fileHash)} className="opacity-60 hover:opacity-100"><X className="w-3 h-3" /></button>
                 </span>
               );
             })}
           </div>
         )}
-        {/* Live ingest progress */}
         {ingestStage !== 'idle' && (
-          <div className="px-3 pt-2">
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-              <span>{ingestStage === 'parsing' ? 'Parsing file…' : 'Profiling on server…'}</span>
-              <span className="font-mono">{ingestProgress}%</span>
+          <div className="px-4 pt-3">
+            <div className="h-1 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-black dark:bg-white transition-all duration-150" style={{ width: `${ingestProgress}%` }} />
             </div>
-            <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-150" style={{ width: `${ingestProgress}%` }} />
-            </div>
+            <p className="text-[11px] text-black/40 dark:text-white/40 mt-1">{ingestStage === 'parsing' ? 'Parsing…' : 'Analyzing…'} {ingestProgress}%</p>
           </div>
         )}
 
-        {/* Textarea + send */}
-        <div className="flex items-end gap-3 px-4 py-3">
+        {/* Input — ChatGPT style, large, centered */}
+        <div className="flex items-end gap-2 px-3 py-3">
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => fileRef.current?.click()} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-black/60 dark:text-white/60" title="Attach files">
+              <Upload className="w-4 h-4" />
+            </button>
+            <button onClick={() => setPrompt('Search the web for...')} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/10">
+              <Search className="w-3.5 h-3.5" /> Search
+            </button>
+          </div>
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => { setText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
+            onChange={(e) => { setText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'; }}
             onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
             disabled={isAiLoading}
-            placeholder={isLoaded ? `Ask about ${fileName}…` : 'Upload a file or try a sample dataset…'}
+            placeholder={isLoaded ? `Ask about ${fileName}…` : 'Ask anything — or drop a file for analysis'}
             rows={1}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 resize-none outline-none min-h-[24px] max-h-[120px] py-1 leading-relaxed"
+            className="flex-1 bg-transparent text-[15px] leading-relaxed placeholder:text-black/40 dark:placeholder:text-white/40 resize-none outline-none min-h-[24px] max-h-[140px] py-1.5"
           />
-          {isAiLoading ? (
-            <button onClick={cancelStream}
-              className="w-9 h-9 rounded-xl bg-destructive text-destructive-foreground flex items-center justify-center shrink-0 hover:brightness-110 transition-all" title="Stop">
-              <Square className="w-3.5 h-3.5" fill="currentColor" />
+          <div className="flex items-center gap-1 shrink-0">
+            <button className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-black/40 dark:text-white/40" title="Voice" onClick={()=>toast('Voice input coming soon')}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
             </button>
-          ) : (
-            <button onClick={handleSend} disabled={!text.trim()}
-              className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-30 hover:brightness-110 hover:shadow-md transition-all duration-200">
-              <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          )}
+            {isAiLoading ? (
+              <button onClick={cancelStream} className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center hover:opacity-90" title="Stop">
+                <Square className="w-3.5 h-3.5" fill="currentColor" />
+              </button>
+            ) : (
+              <button onClick={handleSend} disabled={!text.trim()} className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center disabled:opacity-20 hover:opacity-90 transition-opacity">
+                <ArrowUp className="w-4 h-4" strokeWidth={2} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1 px-3 pb-2.5 overflow-x-auto scrollbar-hide">
-          <button onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-            <Upload className="w-3.5 h-3.5" /> Upload
-          </button>
+        {/* Quick actions — ChatGPT style, minimal pills */}
+        <div className="flex items-center gap-1.5 px-3 pb-3 overflow-x-auto scrollbar-hide">
+          <span className="text-[11px] text-black/30 dark:text-white/30 hidden sm:inline">Quick:</span>
+          <button onClick={() => setPrompt('Profile all columns in detail')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Profile</button>
+          <button onClick={() => setPrompt('Show me a chart')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Chart</button>
+          <button onClick={() => setPrompt('Find outliers')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Outliers</button>
           {isLoaded && (
             <>
-              <button onClick={() => setPrompt('Profile all columns in detail')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <Sparkles className="w-3.5 h-3.5" /> Profile
-              </button>
-              <button onClick={() => setPrompt('Suggest and build the best ML model for this data')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <Brain className="w-3.5 h-3.5" /> Model
-              </button>
-              <button onClick={() => setPrompt('Run a comprehensive statistical analysis on this dataset')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <BarChart3 className="w-3.5 h-3.5" /> Analyze
-              </button>
-              <button onClick={() => setPrompt('Design a data pipeline and feature engineering plan')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <Wrench className="w-3.5 h-3.5" /> Engineer
-              </button>
-              <button onClick={() => setPrompt('Create a deployment and monitoring plan for this data workflow')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <Settings className="w-3.5 h-3.5" /> MLOps
-              </button>
-              <button onClick={() => setPrompt('I have an error to debug — let me paste the traceback')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <Bug className="w-3.5 h-3.5" /> Debug
-              </button>
-              <button onClick={() => setPrompt('Create an executive summary and data story for stakeholders')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <BookOpen className="w-3.5 h-3.5" /> Story
-              </button>
-              <button onClick={() => setPrompt('Generate documentation for this dataset and analysis')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <FileText className="w-3.5 h-3.5" /> Docs
-              </button>
+              <button onClick={() => setPrompt('Suggest and build the best ML model')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Model</button>
+              <button onClick={() => setPrompt('Clean this dataset')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Clean</button>
             </>
           )}
         </div>
       </div>
 
-      <p className="text-center text-[10px] text-muted-foreground/60 mt-2.5">
-        Enter to send · Shift+Enter for new line · Drag & drop files
-        {connectionStatus !== 'idle' && (
-          <span className="ml-2">· <span className={connectionStatus === 'error' ? 'text-destructive' : 'text-primary'}>{connectionStatus}</span></span>
-        )}
-      </p>
-
-      <input ref={fileRef} type="file" accept=".csv,.json,.xlsx,.xls,.tsv" multiple className="hidden"
+      <input ref={fileRef} type="file" accept=".csv,.json,.xlsx,.xls,.tsv,.png,.jpg,.pdf" multiple className="hidden"
         onChange={(e) => { const files = e.target.files; if (files) Array.from(files).forEach(f => handleFile(f)); e.target.value = ''; }} />
     </div>
   );

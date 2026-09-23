@@ -10,10 +10,14 @@ async function load() {
   if (pyodide) return pyodide;
   if (loading) return loading;
   loading = (async () => {
-    // @ts-ignore - dynamic import from CDN to keep bundle small
-    const { loadPyodide } = await import("https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.mjs");
+    // Pyodide version pinned to match package.json (^0.29.3) to avoid drift.
+    // Self-hosting via npm package is preferred for offline/enterprise; CDN is fallback.
+    // To self-host, run `npm run build` and serve `node_modules/pyodide` from your CDN/assets.
+    const CDN_VERSION = "v0.29.3";
+    // @ts-ignore - dynamic import from CDN to keep bundle small; swap to local import for self-host
+    const { loadPyodide } = await import(`https://cdn.jsdelivr.net/pyodide/${CDN_VERSION}/full/pyodide.mjs`);
     pyodide = await loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/",
+      indexURL: `https://cdn.jsdelivr.net/pyodide/${CDN_VERSION}/full/`,
     });
     await pyodide.loadPackage(["pandas", "numpy"]);
     return pyodide;

@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool } from "../shim";
 import { z } from "zod";
 
 export default defineTool({

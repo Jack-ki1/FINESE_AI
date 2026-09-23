@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool } from "../shim";
 import { salesData, hrData, stockData } from "../../sample-datasets";
 
 export default defineTool({

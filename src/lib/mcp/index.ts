@@ -1,4 +1,4 @@
-import { defineMcp } from "@lovable.dev/mcp-js";
+import { defineMcp } from "./shim";
 import echoTool from "./tools/echo";
 import listSampleDatasetsTool from "./tools/list-sample-datasets";
 import getSampleDatasetTool from "./tools/get-sample-dataset";

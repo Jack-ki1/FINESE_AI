@@ -1,8 +1,8 @@
+import { useState } from 'react';
 import { useDatumStore } from '@/store/datum.store';
-import { PanelLeftClose, PanelLeft, Clock, Database, Layers } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, Clock } from 'lucide-react';
 import { formatNumber, healthScore } from '@/lib/stats';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { ExportButton } from '@/components/chat/ExportButton';
 import { ChatSearch } from '@/components/chat/ChatSearch';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -12,64 +12,72 @@ export function Topbar() {
   const navigate = useNavigate();
   const session = sessions.find(s => s.id === activeSessionId);
   const health = profile ? healthScore(profile) : 0;
-  const numCols = profile?.filter(p => p.type === 'numeric').length || 0;
-  const catCols = profile?.filter(p => p.type === 'categorical').length || 0;
+  const [modelOpen, setModelOpen] = useState(false);
+
+  // Get model from settings
+  const model = (() => {
+    try {
+      const raw = localStorage.getItem('finese-settings');
+      if (raw) return JSON.parse(raw).state?.ai?.model || 'FINESE AI';
+    } catch {}
+    return 'FINESE AI';
+  })();
 
   return (
-    <header className="h-14 min-h-[56px] flex items-center gap-2 sm:gap-4 px-3 sm:px-5 border-b border-border bg-card/80 backdrop-blur-sm">
-      <button onClick={toggleSidebar} aria-label="Toggle menu" className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-        {sidebarOpen ? <PanelLeftClose className="w-[18px] h-[18px]" /> : <PanelLeft className="w-[18px] h-[18px]" />}
-      </button>
-
-      <span className="text-sm font-semibold text-foreground truncate min-w-0">
-        {session?.title || 'New Session'}
-      </span>
-
-      {/* Keyboard shortcut hint */}
-      <kbd className="hidden md:inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border cursor-pointer hover:bg-accent transition-colors"
-        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}>
-        ⌘K
-      </kbd>
-
-      {isLoaded && (
-        <div className="hidden lg:flex items-center gap-2 ml-auto min-w-0 overflow-x-auto scrollbar-hide">
-          <Chip color="blue">{fileName}</Chip>
-          <Chip color="cyan">{formatNumber(dataset?.length || 0)} rows</Chip>
-          <Chip color="violet">{profile?.length} cols</Chip>
-          {numCols > 0 && <Chip color="amber">{numCols} numeric</Chip>}
-          {catCols > 0 && <Chip color="green">{catCols} cat</Chip>}
-          <Chip color={health >= 90 ? 'green' : health >= 70 ? 'amber' : 'red'}>
-            ♥ {health}%
-          </Chip>
-
-          <div className="h-5 w-px bg-border mx-1" />
-
-          <Button size="sm" variant="outline" onClick={() => navigate('/data/original')} className="gap-1.5 text-[11px] h-7 px-2.5 rounded-lg">
-            <Database className="w-3 h-3" /> Original
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate('/data/transformed')} className="gap-1.5 text-[11px] h-7 px-2.5 rounded-lg">
-            <Layers className="w-3 h-3" /> Transformed
-          </Button>
-        </div>
-      )}
-
-      {/* Compact data access for small screens */}
-      {isLoaded && (
-        <button onClick={() => navigate('/data/original')} aria-label="View data"
-          className="lg:hidden ml-auto p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-          <Database className="w-[18px] h-[18px]" />
+    <header className="h-12 min-h-[48px] flex items-center justify-between px-3 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white dark:bg-[#212121] sticky top-0 z-10">
+      <div className="flex items-center gap-2">
+        <button onClick={toggleSidebar} aria-label="Toggle menu" className="p-1.5 rounded-lg text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 shrink-0">
+          {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
-      )}
+        {/* Model selector — ChatGPT style */}
+        <div className="relative">
+          <button onClick={()=>setModelOpen(!modelOpen)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-sm font-medium">
+            <span className="hidden sm:inline">FINESE AI</span>
+            <span className="sm:hidden">FINESE</span>
+            <span className="text-[11px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 font-mono hidden md:inline">{model.split('/').pop()?.split(':')[0] || '2026'}</span>
+            <svg className={`w-3 h-3 opacity-60 transition-transform ${modelOpen?'rotate-180':''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          {modelOpen && (
+            <div className="absolute top-full left-0 mt-1 w-72 rounded-xl border bg-white dark:bg-[#2f2f2f] shadow-xl p-2 z-20">
+              <div className="px-3 py-2 border-b border-black/5 dark:border-white/5">
+                <p className="text-xs font-semibold">FINESE AI</p>
+                <p className="text-[11px] text-muted-foreground">Intelligent Analytics • 2026</p>
+              </div>
+              <div className="py-1">
+                <div className="px-3 py-1.5 text-[11px] font-medium text-muted-foreground">Current</div>
+                <div className="mx-1 px-2 py-2 rounded-lg bg-black/5 dark:bg-white/5 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-[10px]">✦</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{model}</p>
+                    <p className="text-[10px] text-muted-foreground">via Settings → AI</p>
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                </div>
+              </div>
+              <button onClick={()=>{ setModelOpen(false); navigate('/settings'); }} className="w-full mt-1 px-3 py-1.5 text-xs text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg text-left">Change in Settings →</button>
+            </div>
+          )}
+        </div>
+        <span className="hidden lg:inline text-xs text-black/40 dark:text-white/30 truncate max-w-[200px]">{session?.title || 'New chat'}</span>
+      </div>
 
-      {!isLoaded && <div className="ml-auto" />}
-
-      {/* Right-side actions */}
-      <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-1">
+        {isLoaded && (
+          <div className="hidden md:flex items-center gap-1.5 mr-2">
+            <span className="text-[11px] px-2 py-1 rounded-full bg-black/5 dark:bg-white/5 border text-black/60 dark:text-white/60 font-mono hidden xl:inline">{fileName}</span>
+            <span className="text-[11px] px-1.5 py-1 rounded-full bg-white dark:bg-white/5 border text-black/60 dark:text-white/50 hidden lg:inline">{formatNumber(dataset?.length||0)} rows</span>
+            <span className={`text-[11px] px-1.5 py-1 rounded-full border hidden lg:inline ${health>=90?'bg-green-500/10 text-green-600 border-green-500/20':health>=70?'bg-amber-500/10 text-amber-600 border-amber-500/20':'bg-red-500/10 text-red-600 border-red-500/20'}`}>♥ {health}%</span>
+          </div>
+        )}
+        <button onClick={()=>navigator.clipboard.writeText(window.location.href)} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border bg-white dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10">
+          <span className="hidden md:inline">Share</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684z"/></svg>
+        </button>
         <ChatSearch />
         <ExportButton />
         <ThemeToggle />
-        <button onClick={toggleChangelog} aria-label="Toggle changelog" className={`p-1.5 rounded-lg transition-colors ${changelogOpen ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-          <Clock className="w-[18px] h-[18px]" />
+        <button onClick={toggleChangelog} className={`p-1.5 rounded-lg ${changelogOpen ? 'bg-black/5 dark:bg-white/10 text-black dark:text-white' : 'text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'}`}>
+          <Clock className="w-4 h-4" />
         </button>
       </div>
     </header>

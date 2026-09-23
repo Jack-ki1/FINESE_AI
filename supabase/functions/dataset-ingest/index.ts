@@ -2,13 +2,8 @@
 // Receives the parsed rows (client parses small files), hashes content,
 // stores raw file in Storage, computes server-side profile, caches in DB.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { buildProfile, buildAdvanced } from "../_shared/stats.ts";
 
 interface IngestPayload {
   file_name: string;
@@ -29,183 +24,8 @@ async function sha256(text: string): Promise<string> {
     .join("");
 }
 
-// ── pure-TS stats (mirrors src/lib/stats.ts) ───────────────────────
-const ZIP_RE = /^\d{5}(-\d{4})?$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const URL_RE = /^(https?:\/\/|www\.)/i;
-const CURRENCY_RE = /^[\$€£¥₹]\s?-?\d/;
-const BOOL_VALUES = new Set(["true","false","yes","no","y","n","0","1","t","f"]);
-
-function looksNumeric(v: any) {
-  if (v === "" || v === null || v === undefined || typeof v === "boolean") return false;
-  const n = Number(v); return !isNaN(n) && isFinite(n);
-}
-
-function detectSemantic(col: string, values: any[]): string {
-  const nn = values.filter((v) => v !== null && v !== undefined && v !== "");
-  if (!nn.length) return "empty";
-  const total = nn.length;
-  const strs = nn.map(String);
-  const uniqueRatio = new Set(strs).size / total;
-  const isIdName = /(^id$|_id$|^uuid$|guid|hash|key)/i.test(col);
-  const isZipName = /(^zip$|zipcode|postal|^postcode$)/i.test(col);
-  const isEmailName = /(email|e-mail)/i.test(col);
-  const isUrlName = /(url|link|href|website|domain)/i.test(col);
-  const isCurrencyName = /(price|cost|revenue|amount|salary|wage|fee|charge|usd|eur|gbp)/i.test(col);
-
-  if (isIdName && uniqueRatio > 0.9) return "identifier";
-  if (uniqueRatio > 0.95 && strs.every((s) => s.length >= 6 && s.length <= 64)) return "identifier";
-
-  const ratio = (re: RegExp) => strs.filter((s) => re.test(s)).length / total;
-  const boolRatio = strs.filter((s) => BOOL_VALUES.has(s.toLowerCase())).length / total;
-
-  if (isZipName || ratio(ZIP_RE) > 0.8) return "zip";
-  if (isEmailName || ratio(EMAIL_RE) > 0.8) return "email";
-  if (isUrlName || ratio(URL_RE) > 0.8) return "url";
-  if (ratio(CURRENCY_RE) > 0.8 || (isCurrencyName && nn.every(looksNumeric))) return "currency";
-  if (boolRatio > 0.95) return "boolean";
-
-  const numCount = nn.filter(looksNumeric).length;
-  if (numCount / total > 0.9) {
-    if (uniqueRatio > 0.95 && strs.every((s) => /^\d+$/.test(s))) return "identifier";
-    return "numeric";
-  }
-  const dateCount = nn.filter((v) => !isNaN(Date.parse(String(v))) && String(v).length > 4).length;
-  if (dateCount / total > 0.85) return "datetime";
-  if (uniqueRatio < 0.25 && new Set(strs).size <= 50) return "categorical";
-  return "text";
-}
-
-function quantile(sorted: number[], q: number): number {
-  if (!sorted.length) return NaN;
-  if (sorted.length === 1) return sorted[0];
-  const i = (sorted.length - 1) * q;
-  const lo = Math.floor(i), hi = Math.ceil(i);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
-}
-
-function semanticToType(s: string): string {
-  if (s === "numeric" || s === "currency") return "numeric";
-  if (s === "datetime") return "datetime";
-  if (s === "categorical" || s === "boolean") return "categorical";
-  if (s === "empty") return "empty";
-  return "text";
-}
-
-function buildProfile(data: Record<string, any>[]): any[] {
-  if (!data.length) return [];
-  const cols = Object.keys(data[0]);
-  return cols.map((col) => {
-    const values = data.map((r) => r[col]);
-    const semantic = detectSemantic(col, values);
-    const type = semanticToType(semantic);
-    const total = values.length;
-    const nullCount = values.filter(
-      (v) => v === null || v === undefined || v === ""
-    ).length;
-    const nn = values.filter((v) => v !== null && v !== undefined && v !== "");
-    const uniqueCount = new Set(nn.map(String)).size;
-    const p: any = { col, type, semantic, nullCount, uniqueCount, total };
-    if (type === "numeric") {
-      const nums = nn.map(Number).filter((n) => !isNaN(n)).sort((a, b) => a - b);
-      if (nums.length) {
-        p.min = nums[0];
-        p.max = nums[nums.length - 1];
-        p.mean = nums.reduce((a, b) => a + b, 0) / nums.length;
-        p.median = quantile(nums, 0.5);
-        p.std = nums.length > 1
-          ? Math.sqrt(nums.reduce((s, v) => s + (v - p.mean) ** 2, 0) / (nums.length - 1))
-          : 0;
-        p.q1 = quantile(nums, 0.25);
-        p.q3 = quantile(nums, 0.75);
-        const iqr = p.q3 - p.q1;
-        p.outliers = nums.filter(
-          (v) => v < p.q1 - 1.5 * iqr || v > p.q3 + 1.5 * iqr
-        ).length;
-      }
-    } else if (type === "categorical") {
-      const counts: Record<string, number> = {};
-      nn.forEach((v) => {
-        counts[String(v)] = (counts[String(v)] || 0) + 1;
-      });
-      p.top = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([value, count]) => ({
-          value,
-          count,
-          pct: Math.round((count / total) * 100),
-        }));
-    }
-    return p;
-  });
-}
-
-function pearson(data: any[], a: string, b: string): { r: number; n: number } {
-  const pairs = data
-    .map((r) => [Number(r[a]), Number(r[b])])
-    .filter(([x, y]) => !isNaN(x) && !isNaN(y));
-  const n = pairs.length;
-  if (n < 3) return { r: NaN, n };
-  const sa = pairs.reduce((s, [x]) => s + x, 0);
-  const sb = pairs.reduce((s, [, y]) => s + y, 0);
-  const sab = pairs.reduce((s, [x, y]) => s + x * y, 0);
-  const sa2 = pairs.reduce((s, [x]) => s + x * x, 0);
-  const sb2 = pairs.reduce((s, [, y]) => s + y * y, 0);
-  const d = Math.sqrt((n * sa2 - sa ** 2) * (n * sb2 - sb ** 2));
-  if (d === 0) return { r: 0, n };
-  return { r: Math.round(((n * sab - sa * sb) / d) * 1000) / 1000, n };
-}
-
-function buildAdvanced(data: any[], profile: any[]) {
-  // Only correlate truly numeric columns — never identifiers/zip/currency-as-text
-  const numCols = profile
-    .filter((p) => p.type === "numeric" && p.semantic !== "identifier")
-    .map((p) => p.col);
-  const correlations: any[] = [];
-  for (let i = 0; i < numCols.length; i++) {
-    for (let j = i + 1; j < numCols.length; j++) {
-      const { r, n } = pearson(data, numCols[i], numCols[j]);
-      if (!isNaN(r) && Math.abs(r) > 0.4) {
-        const out: any = { colA: numCols[i], colB: numCols[j], r, n };
-        if (n < 10) out.warning = `Small sample (n=${n})`;
-        correlations.push(out);
-      }
-    }
-  }
-  correlations.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
-
-  const dateCols = profile.filter((p) => p.type === "datetime");
-  const temporalColumns = dateCols.map((p) => {
-    const dates = data
-      .map((r) => new Date(r[p.col]))
-      .filter((d) => !isNaN(d.getTime()))
-      .sort((a, b) => a.getTime() - b.getTime());
-    if (dates.length < 2) return { col: p.col, min: "N/A", max: "N/A", granularity: "unknown" };
-    return {
-      col: p.col,
-      min: dates[0].toISOString().split("T")[0],
-      max: dates[dates.length - 1].toISOString().split("T")[0],
-      granularity: "auto",
-    };
-  });
-
-  const totalCells = profile.reduce((s, p) => s + p.total, 0);
-  const nullCells = profile.reduce((s, p) => s + p.nullCount, 0);
-  const sparsity = totalCells > 0 ? nullCells / totalCells : 0;
-
-  const suggestedTargets = profile
-    .filter((p) => (p.type === "categorical" && p.uniqueCount <= 10) || (p.type === "numeric" && p.uniqueCount === 2))
-    .map((p) => p.col);
-
-  return {
-    correlations: correlations.slice(0, 20),
-    advanced: { temporalColumns, sparsity, suggestedTargets },
-  };
-}
-
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -239,6 +59,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: `Too many rows (${payload.rows.length}). Max is ${MAX_ROWS}.` }), {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Schema consistency check: warn if column sets vary across rows (drifting CSV)
+    const expectedCols = new Set(Object.keys(payload.rows[0] || {}));
+    let inconsistentRows = 0;
+    for (let i = 1; i < Math.min(payload.rows.length, 1000); i++) {
+      const cols = Object.keys(payload.rows[i] || {});
+      if (cols.length !== expectedCols.size || cols.some((c) => !expectedCols.has(c))) {
+        inconsistentRows++;
+        if (inconsistentRows === 1) {
+          console.warn(`dataset-ingest: schema drift detected at row ${i} — expected [${[...expectedCols].join(",")}] got [${cols.join(",")}]`);
+        }
+      }
     }
 
     const fileName = payload.file_name || "dataset";
@@ -289,7 +122,11 @@ Deno.serve(async (req) => {
 
     // Compute profile server-side
     const profile = buildProfile(payload.rows);
-    const { correlations, advanced } = buildAdvanced(payload.rows, profile);
+    const { correlations, advanced: baseAdvanced } = buildAdvanced(payload.rows, profile);
+    const advanced = {
+      ...baseAdvanced,
+      ...(inconsistentRows > 0 ? { warnings: [`Schema drift: ${inconsistentRows} rows have inconsistent columns`] } : {}),
+    };
     const totalCells = profile.reduce((s: number, p: any) => s + p.total, 0);
     const nullCells = profile.reduce((s: number, p: any) => s + p.nullCount, 0);
     const health_score =
@@ -341,10 +178,17 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
+    if (e instanceof Response) {
+      const body = await e.text().catch(() => "");
+      return new Response(body || JSON.stringify({ error: "Unauthorized" }), {
+        status: e.status,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
     console.error("dataset-ingest error:", e);
     return new Response(
       JSON.stringify({ error: "Failed to ingest dataset. Please try again." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

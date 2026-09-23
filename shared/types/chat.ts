@@ -1,0 +1,50 @@
+import type { ColumnProfile } from './dataset.ts';
+
+export interface Artifact {
+  type: string;
+  title?: string;
+  verified?: boolean;
+  ctype?: string;
+  xCol?: string;
+  yCol?: string;
+  aggFn?: string;
+  data?: Record<string, any>[];
+  insights?: string[];
+  lang?: string;
+  code?: string;
+  profile?: ColumnProfile[];
+  stats?: { label: string; value: string | number; color?: string }[];
+  [key: string]: any;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  artifacts?: Artifact[];
+  timestamp: string;
+}
+
+export interface Session {
+  id: string;
+  title: string;
+  fileName?: string;
+  fileHash?: string;
+  rowCount?: number;
+  colCount?: number;
+  createdAt: string;
+  messages: ChatMessage[];
+}
+
+export interface ToolCall {
+  id: string;
+  function: { name: string; arguments: string };
+}
+
+export interface ChangelogEntry {
+  id: string;
+  action: 'upload' | 'transform' | 'filter' | 'drop' | 'chart' | 'analysis' | 'other';
+  description: string;
+  timestamp: string;
+  data?: Record<string, any>;
+}

@@ -1,5 +1,5 @@
 import { useDatumStore } from '@/store/datum.store';
-import { salesData, hrData, stockData } from '@/lib/sample-datasets';
+import { salesData, hrData, stockData, benchmarkData } from '@/lib/sample-datasets';
 import { BarChart3, Search, Sparkles, Brain, Bug, FlaskConical, GraduationCap, FileText, Blocks, BookOpen } from 'lucide-react';
 import fineseLogo from '@/assets/finese-logo.jpg';
 
@@ -24,50 +24,52 @@ export function WelcomeScreen({ onPrompt }: { onPrompt: (text: string) => void }
   const { ingest } = useDatumStore();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full px-4 sm:px-6 py-8 sm:py-12">
-      {/* Hero */}
-      <div className="relative mb-5">
-        <span aria-hidden className="absolute inset-0 rounded-2xl bg-brand-gradient blur-xl opacity-40" />
-        <div className="relative w-14 h-14 rounded-2xl bg-brand-gradient animate-gradient p-[2px] shadow-lg shadow-primary/20">
-          <img src={fineseLogo} alt="FINESE AI" className="w-full h-full rounded-[14px] object-cover" />
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 sm:px-6 py-12">
+      {/* ChatGPT style hero — centered, minimal */}
+      <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center mb-4">
+        <img src={fineseLogo} alt="F" className="w-6 h-6 rounded-full object-cover" />
       </div>
-      <h1 className="font-display font-extrabold text-2xl sm:text-4xl mb-2 tracking-tight text-center">
-        <span className="text-foreground">What can I help </span>
-        <span className="text-brand-gradient">with?</span>
+      <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-tight text-center mb-2">
+        What can I help with?
       </h1>
-      <p className="text-muted-foreground text-[13px] sm:text-[15px] text-center max-w-md mb-8 sm:mb-10 leading-relaxed">
-        Upload data for analysis, or ask anything — debugging, system design, experiments, research synthesis.
+      <p className="text-[15px] text-black/50 dark:text-white/50 text-center max-w-md mb-10">
+        Data intelligence for professionals — upload, analyze, or just chat.
       </p>
 
-      {/* Starter cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl w-full mb-8 sm:mb-10">
-        {starters.map(s => (
+      {/* ChatGPT style 4 cards — 2x2 grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-[640px] w-full mb-8">
+        {starters.slice(0,4).map(s => (
           <button key={s.title} onClick={() => onPrompt(s.prompt)}
-            className="group flex flex-col gap-2 p-4 rounded-2xl border border-border bg-card hover:border-primary/25 hover:shadow-md text-left transition-all duration-200">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center group-hover:scale-105 transition-transform">
-                <s.icon className={`w-4 h-4 ${s.color}`} />
-              </div>
-              <span className="text-[13px] font-semibold text-foreground">{s.title}</span>
+            className="group text-left p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-white/[0.03] hover:bg-black/[0.02] dark:hover:bg-white/[0.06] transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <s.icon className={`w-4 h-4 ${s.color}`} />
+              <span className="text-sm font-medium">{s.title}</span>
             </div>
-            <span className="text-[11px] text-muted-foreground leading-relaxed pl-[42px]">{s.desc}</span>
+            <span className="text-xs text-black/50 dark:text-white/50 leading-relaxed line-clamp-2">{s.desc}</span>
           </button>
         ))}
       </div>
 
-      {/* Sample datasets */}
-      <div className="flex flex-col items-center gap-2.5">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Try a sample dataset</p>
+      {/* Sample datasets — ChatGPT style pills */}
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-xs text-black/40 dark:text-white/40">Try a sample dataset — 100×5 benchmark available in Data Viewer</p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           {samples.map(s => (
             <button key={s.name} onClick={() => ingest(s.data, s.name)}
-              className="px-4 py-2 rounded-xl border border-border bg-card text-[13px] text-muted-foreground hover:text-foreground hover:border-primary/25 hover:shadow-sm transition-all duration-200">
+              className="px-3 py-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-xs hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
               {s.label}
             </button>
           ))}
+          <button onClick={() => ingest(benchmarkData, 'benchmark_100x5.json')}
+            className="px-3 py-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-medium hover:opacity-90">
+            100×5 Benchmark
+          </button>
         </div>
       </div>
+
+      <p className="text-[11px] text-black/30 dark:text-white/30 mt-10 text-center max-w-md">
+        FINESE AI can make mistakes. Verify important info. Your data stays private.
+      </p>
     </div>
   );
 }

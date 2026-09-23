@@ -10,7 +10,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { sidebarOpen, toggleSidebar, changelogOpen, toggleChangelog } = useDatumStore();
   const collapsed = useRef(false);
 
-  // On small screens start with both panels collapsed so the content gets full width.
   useEffect(() => {
     if (isMobile && !collapsed.current) {
       collapsed.current = true;
@@ -21,12 +20,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isMobile, sidebarOpen, changelogOpen, toggleSidebar, toggleChangelog]);
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-background">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-white dark:bg-[#212121]">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#212121]">
         <Topbar />
         <div className="flex-1 flex overflow-hidden min-w-0">
-          <main className="flex-1 min-w-0 overflow-y-auto bg-muted/30">{children}</main>
+          <main className="flex-1 min-w-0 overflow-y-auto bg-white dark:bg-[#212121] flex flex-col items-center">
+            <div className="w-full max-w-[800px] flex-1 flex flex-col min-h-0">
+              {children}
+            </div>
+          </main>
           <ChangelogSidebar />
         </div>
       </div>

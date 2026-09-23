@@ -145,6 +145,23 @@ function downloadArtifact(artifact: Artifact) {
   }
 }
 
+const VERIFIED_TYPES = new Set(['confusion_matrix', 'feature_importance', 'model_card', 'drift_report', 'hypothesis']);
+const ESTIMATED_TYPES = new Set(['pipeline', 'lineage', 'cost_analysis', 'schema_explorer', 'experiment']);
+
+function VerifiedBadge({ artifact }: { artifact: Artifact }) {
+  const isVerified = (artifact as any).verified === true;
+  const isEstimated = (artifact as any).verified === false || (ESTIMATED_TYPES.has(artifact.type) && (artifact as any).verified !== true);
+  // Only show for types where verification matters
+  if (!VERIFIED_TYPES.has(artifact.type) && !ESTIMATED_TYPES.has(artifact.type)) return null;
+  if (isVerified) {
+    return <span className="ml-2 inline-flex items-center gap-1 text-[8px] font-mono px-1.5 py-0.5 rounded border bg-primary/10 text-primary border-primary/30 uppercase tracking-wider">● Verified · real compute</span>;
+  }
+  if (isEstimated || (!isVerified && VERIFIED_TYPES.has(artifact.type))) {
+    return <span className="ml-2 inline-flex items-center gap-1 text-[8px] font-mono px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-500 border-amber-500/30 uppercase tracking-wider">⚠ Estimated · AI-generated</span>;
+  }
+  return null;
+}
+
 function ArtifactBody({ artifact }: { artifact: Artifact }) {
   switch (artifact.type) {
     case 'chart': return <ChartArtifact artifact={artifact} />;
@@ -191,6 +208,7 @@ export function ArtifactRenderer({ artifact }: { artifact: Artifact }) {
           {artifact.title && (
             <span className="text-xs text-foreground font-medium truncate">{artifact.title}</span>
           )}
+          <VerifiedBadge artifact={artifact} />
           <div className="ml-auto flex items-center gap-0.5">
             <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="Copy">
               {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}

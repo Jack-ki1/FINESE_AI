@@ -1,4 +1,4 @@
-import { defineTool } from "@lovable.dev/mcp-js";
+import { defineTool } from "../shim";
 
 export default defineTool({
   name: "about_finese",

@@ -6,7 +6,10 @@ import { DataTable } from '@/components/data-viewer/DataTable';
 import { DataVisuals } from '@/components/data-viewer/DataVisuals';
 import { DataReport } from '@/components/data-viewer/DataReport';
 import { DataUpload } from '@/components/data-viewer/DataUpload';
-import { ArrowLeft, TableProperties, BarChart3, FileText, Upload } from 'lucide-react';
+import { AutoEDA } from '@/components/data-viewer/AutoEDA';
+import { DataCleaning } from '@/components/data-viewer/DataCleaning';
+import { SqlLab } from '@/components/data-viewer/SqlLab';
+import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function DataViewer() {
@@ -44,12 +47,21 @@ export default function DataViewer() {
             </div>
           ) : (
             <Tabs defaultValue="table" className="w-full">
-              <TabsList className="bg-muted/50 border border-border rounded-xl p-1 mb-6">
+              <TabsList className="bg-muted/50 border border-border rounded-xl p-1 mb-6 flex flex-wrap">
                 <TabsTrigger value="table" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <TableProperties className="w-3.5 h-3.5" /> Table
                 </TabsTrigger>
                 <TabsTrigger value="visuals" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <BarChart3 className="w-3.5 h-3.5" /> Visuals
+                </TabsTrigger>
+                <TabsTrigger value="eda" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5" /> Auto-EDA
+                </TabsTrigger>
+                <TabsTrigger value="clean" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <Brush className="w-3.5 h-3.5" /> Clean
+                </TabsTrigger>
+                <TabsTrigger value="sql" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <Database className="w-3.5 h-3.5" /> SQL Lab
                 </TabsTrigger>
                 <TabsTrigger value="report" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <FileText className="w-3.5 h-3.5" /> Report
@@ -64,6 +76,15 @@ export default function DataViewer() {
               </TabsContent>
               <TabsContent value="visuals">
                 <DataVisuals data={activeData} profile={profile!} />
+              </TabsContent>
+              <TabsContent value="eda">
+                <AutoEDA data={activeData} profile={profile!} fileName={fileName} />
+              </TabsContent>
+              <TabsContent value="clean">
+                <DataCleaning data={activeData} profile={profile!} />
+              </TabsContent>
+              <TabsContent value="sql">
+                <SqlLab />
               </TabsContent>
               <TabsContent value="report">
                 <DataReport data={activeData} profile={profile!} fileName={fileName} />

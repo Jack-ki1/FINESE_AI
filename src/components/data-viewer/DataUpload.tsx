@@ -61,8 +61,31 @@ export function DataUpload() {
     : dragOver ? 'Release to analyze'
     : 'Drop your dataset here';
 
+  const loadSample = async (name: string) => {
+    try {
+      setLocalStage('parsing');
+      let data: Record<string, any>[];
+      if (name === 'benchmark') {
+        const { benchmarkData } = await import('@/lib/sample-datasets');
+        data = benchmarkData;
+        await ingest(data, 'benchmark_100x5.json');
+        toast.success('Sample loaded', { description: `${data.length} rows × ${Object.keys(data[0]).length} cols — salary mean ${Math.round(data.reduce((s,r)=>s+r.salary,0)/data.length)}` });
+      } else {
+        const res = await fetch('/benchmark_100x5.json');
+        data = await res.json();
+        await ingest(data, 'benchmark_100x5.json');
+        toast.success('Sample loaded');
+      }
+    } catch (e:any) { toast.error(e.message); }
+    finally { setLocalStage('idle'); }
+  };
+
   return (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex flex-col items-center gap-6 py-8">
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => loadSample('benchmark')} disabled={loading} className="gap-2 text-xs"><Sparkles className="w-3.5 h-3.5"/> Load 100×5 Sample (salary/age)</Button>
+        <Button size="sm" variant="outline" onClick={() => window.location.href='/chat'} className="text-xs">Go to Chat →</Button>
+      </div>
       <div
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}

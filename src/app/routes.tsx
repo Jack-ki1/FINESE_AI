@@ -1,29 +1,37 @@
-// OPEN MODE — auth frozen for building phase (2026-09-23)
-// All routes are public. Auth pages are kept but bypassed. Re-enable Protected* when ready for prod.
 import { Route, Routes } from "react-router-dom";
-import Auth from "@/pages/Auth";
-import ResetPassword from "@/pages/ResetPassword";
-import Index from "@/pages/Index";
-import Chat from "@/pages/Chat";
-import DataViewer from "@/pages/DataViewer";
-import NotFound from "@/pages/NotFound";
-import SamplePrompts from "@/pages/SamplePrompts";
-import Admin from "@/pages/Admin";
-import Settings from "@/pages/Settings";
+import { lazy, Suspense } from "react";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ProtectedAdminRoute from "@/components/auth/ProtectedAdminRoute";
+
+const Auth = lazy(() => import("@/pages/Auth"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Index = lazy(() => import("@/pages/Index"));
+const Chat = lazy(() => import("@/pages/Chat"));
+const DataViewer = lazy(() => import("@/pages/DataViewer"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const SamplePrompts = lazy(() => import("@/pages/SamplePrompts"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const Settings = lazy(() => import("@/pages/Settings"));
+
+function Fallback() {
+  return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+}
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/" element={<Index />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/chat" element={<Chat />} />
-      <Route path="/chat/:sessionId" element={<Chat />} />
-      <Route path="/data/:view" element={<DataViewer />} />
-      <Route path="/prompts" element={<SamplePrompts />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<Fallback />}>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/chat/:sessionId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/data/:view" element={<ProtectedRoute><DataViewer /></ProtectedRoute>} />
+        <Route path="/prompts" element={<ProtectedRoute><SamplePrompts /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }

@@ -1,34 +1,20 @@
 // Lightweight profile fetch — returns cached profile without downloading full dataset rows.
-// This is a dedicated alias for dataset-fetch?profile_only=true for semantic clarity.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, getServiceClient } from "../_shared/auth.ts";
+import { datasetProfileSchema, parseOrThrow } from "../_shared/schemas.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data: userData, error: userErr } = await anon.auth.getUser(authHeader.slice(7));
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const user_id = userData.user.id;
-    const { file_hash } = await req.json().catch(() => ({}));
-    if (!file_hash || typeof file_hash !== "string") {
-      return new Response(JSON.stringify({ error: "file_hash required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-    const { data: meta } = await supa.from("datasets").select("file_name, row_count, col_count").eq("file_hash", file_hash).eq("user_id", user_id).maybeSingle();
+    const { userId } = await requireUser(req);
+    rateLimitOrThrow(req, userId, LIMITS.fetch);
+    const raw = await req.json().catch(() => ({}));
+    const { file_hash } = parseOrThrow(datasetProfileSchema, raw) as { file_hash: string };
+    const supa = getServiceClient();
+    const { data: meta } = await supa.from("datasets").select("file_name, row_count, col_count").eq("file_hash", file_hash).eq("user_id", userId).maybeSingle();
     if (!meta) {
       return new Response(JSON.stringify({ error: "Dataset not found or access denied" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -56,9 +42,10 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof Response) {
       const body = await e.text().catch(() => "");
+      const ct = e.headers.get("Content-Type") || "application/json";
       return new Response(body || JSON.stringify({ error: "Unauthorized" }), {
         status: e.status,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": ct },
       });
     }
     console.error("dataset-profile error:", e);

@@ -11,22 +11,18 @@
 - **Multi-Dataset Support**: Upload and switch between multiple datasets within a single session (profile fetched without re-uploading full data)
 
 ### **Machine Learning & Data Science**
-- **Real Model Training**: Train classifiers (Naive Bayes) with actual train/test splits; linear regression via OLS
-- **Comprehensive Evaluation**: Confusion matrices, precision/recall/F1 scores, feature importance — all verified when from `train_classifier`; drift via `drift_check` (PSI+KS)
-- **Advanced Analytics**: Hypothesis testing (Welch's t-test, one-way ANOVA), correlation, outlier detection, K-Means clustering with silhouette
-- **Feature Engineering**: Automated feature selection and importance ranking
+- **Real Model Training**: Naive Bayes classifier (`train_classifier`) with holdout accuracy, confusion matrix, permutation importance; OLS linear regression (`linear_regression`)
+- **Verified Analytics (12 tools)**: `describe_column`, `group_by_aggregate`, `correlation` (Pearson), `ttest` (Welch), `anova`, `outliers` (IQR), `filter_count`, `histogram`, `kmeans` (silhouette), `drift_check` (PSI+KS) — all server-computed and badge-verified
+- **Estimated/Code Artifacts**: Pipeline/lineage/cost analysis/experiment designs are AI-generated scaffolds and shown as `Estimated` (not verified numbers) — run them in your infra
 
 ### **Data Engineering Capabilities**
-- **Pipeline Design**: Generate ETL/ELT pipelines with proper architecture
-- **SQL Generation**: Complex queries with CTEs, window functions, and optimization hints
-- **Data Quality Checks**: Automated validation rules and quality scoring
-- **Schema Exploration**: Visual schema documentation and lineage tracking
+- **SQL Generation**: CTEs, window functions, optimization hints (generated code, `Estimated`)
+- **Pipeline & Schema**: ETL/ELT, dbt/Airflow scaffolds, schema lineage (generated, `Estimated`)
+- **Data Quality**: Profiling, validation rules, health scoring — backed by `describe_column`/`outliers` where possible
 
 ### **MLOps & Production Readiness**
-- **Model Monitoring**: Drift detection, performance tracking, alerting strategies
-- **Deployment Planning**: Containerized serving, A/B testing, rollback strategies
-- **Experiment Tracking**: Reproducible training environments with versioning
-- **Cost Analysis**: Resource optimization and cost estimation
+- **Drift & Monitoring**: Real `drift_check` (verified); alerting/deployment strategies as generated guidance (`Estimated`)
+- **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner
 
 ### **Specialized Response Modes**
 The AI adapts its behavior based on context:
@@ -59,7 +55,7 @@ FINESE AI follows a clean separation between frontend and backend:
 ┌─────────────────────────────────────────────────────┐
 │              Backend (Supabase Edge Functions)      │
 │  ┌────────────────┐  ┌──────────────────────────┐  │
-│  │ dataset-ingest │  │    datum-chat (AI)       │  │
+│  │ dataset-ingest │  │    FINESE-chat (AI)      │  │
 │  │                │  │  + Tool Calling Loop     │  │
 │  └────────────────┘  └──────────────────────────┘  │
 │  ┌────────────────┐  ┌──────────────────────────┐  │
@@ -95,9 +91,10 @@ FINESE AI follows a clean separation between frontend and backend:
 |----------|---------------|
 | `dataset-ingest` | Validates size/row caps, stores dataset in Storage, builds column profile, caches in DB |
 | `dataset-fetch` | Authenticated, cacheable read proxy for stored datasets |
-| `compute-tools` | Real statistics and ML (correlation, t-test, classifier training, feature importance) |
-| `datum-chat` | AI orchestration with tool-calling loop; streams responses via Server-Sent Events |
-| `mcp` | Public MCP server for external agents (Claude Desktop, Cursor, etc.) |
+| `dataset-profile` | Lightweight profile-only fetch (no row download) for session switching |
+| `compute-tools` | 12 verified tools: describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift |
+| `FINESE-chat` | AI orchestration with tool-calling loop (6 rounds, history cap 30); streams responses via SSE |
+| `mcp` | MCP server for external agents — requires `MCP_API_KEY` or Supabase JWT + rate-limited |
 
 **Security Rules:**
 - Every function requires a valid session token and verifies row ownership

@@ -4,6 +4,8 @@ import { requireUser } from "../_shared/auth.ts";
 import { TOOL_DEFS } from "./tool-defs.ts";
 import { getAIConfig, callChatCompletions, runTool } from "./gateway.ts";
 import { buildSystemPrompt } from "./prompts/index.ts";
+import { chatRequestSchema, parseOrThrow } from "../_shared/schemas.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
 const MAX_TOOL_ROUNDS = parseInt(Deno.env.get("MAX_TOOL_ROUNDS") || "6");
 const MAX_HISTORY_MESSAGES = parseInt(Deno.env.get("MAX_HISTORY_MESSAGES") || "30");
@@ -30,29 +32,17 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    let user_id: string;
-    let userJwt: string;
-    try {
-      const r = await requireUser(req);
-      user_id = r.userId; userJwt = r.token;
-    } catch (e) {
-      // OPEN MODE: if requireUser throws but OPEN_MODE, allow mock
-      if (Deno.env.get("OPEN_MODE") === "true" || Deno.env.get("VITE_OPEN_MODE") === "true") {
-        user_id = "00000000-0000-4000-a000-000000000001"; userJwt = "open-mode-jwt";
-      } else throw e;
-    }
-    const { messages: rawMessages, dataset_context, file_hash, ai_config } = await req.json();
-    const { AI_API_KEY } = getAIConfig(ai_config);
-    // In open mode with free model, allow empty key (will try without auth, fallback to mock if 401)
-    if (!AI_API_KEY && !(ai_config?.useFree)) {
-      // Don't throw hard when free — let it try and fallback
-      console.warn("AI_API_KEY not set, but useFree may allow it");
-    }
+    const { userId, token: userJwt } = await requireUser(req);
+    rateLimitOrThrow(req, userId, LIMITS.chat);
+    const raw = await req.json();
+    const { messages: rawMessages, dataset_context, file_hash, ai_config } = parseOrThrow(chatRequestSchema, raw) as any;
+    // getAIConfig validates SSRF — throws if custom baseUrl without key
+    getAIConfig(ai_config);
     const messages = Array.isArray(rawMessages) && rawMessages.length > MAX_HISTORY_MESSAGES ? rawMessages.slice(-MAX_HISTORY_MESSAGES) : rawMessages;
-    if (file_hash && userJwt !== "open-mode-jwt") {
+    if (file_hash) {
       const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.50.0");
       const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-      const { data: owned } = await svc.from("datasets").select("file_hash").eq("file_hash", file_hash).eq("user_id", user_id).maybeSingle();
+      const { data: owned } = await svc.from("datasets").select("file_hash").eq("file_hash", file_hash).eq("user_id", userId).maybeSingle();
       if (!owned) return new Response(JSON.stringify({ error: "Dataset access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const systemPrompt = buildSystemPrompt(dataset_context);
@@ -111,9 +101,14 @@ serve(async (req) => {
   } catch (e) {
     if (e instanceof Response) {
       const body = await e.text().catch(() => "");
-      return new Response(body || JSON.stringify({ error: "Unauthorized" }), { status: e.status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+      const ct = e.headers.get("Content-Type") || "application/json";
+      return new Response(body || JSON.stringify({ error: "Unauthorized" }), { status: e.status, headers: { ...getCorsHeaders(req), "Content-Type": ct } });
     }
     console.error("FINESE-chat error:", e);
+    const msg = (e as Error)?.message || "";
+    if (msg.includes("custom base URL") || msg.includes("Invalid custom")) {
+      return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }
     return new Response(JSON.stringify({ error: "Chat service failed. Please try again." }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

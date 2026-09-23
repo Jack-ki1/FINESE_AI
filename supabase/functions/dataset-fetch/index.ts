@@ -1,49 +1,25 @@
-// Public edge function: returns dataset rows for a given file_hash.
-// The datasets table and storage bucket are locked down (no anon access);
-// this function uses service_role to read them on behalf of the client.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, getServiceClient } from "../_shared/auth.ts";
+import { datasetFetchSchema, parseOrThrow } from "../_shared/schemas.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const anon = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: userData, error: userErr } = await anon.auth.getUser(authHeader.slice(7));
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const user_id = userData.user.id;
+    const { userId } = await requireUser(req);
+    rateLimitOrThrow(req, userId, LIMITS.fetch);
 
     const body = await req.json();
-    const { file_hash, profile_only } = body;
-    if (!file_hash || typeof file_hash !== "string") {
-      return new Response(JSON.stringify({ error: "file_hash required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const supa = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const { file_hash, profile_only } = parseOrThrow(datasetFetchSchema, body) as { file_hash: string; profile_only?: boolean };
+
+    const supa = getServiceClient();
     const { data: meta, error: metaErr } = await supa
       .from("datasets")
       .select("storage_path, file_name, row_count, col_count")
       .eq("file_hash", file_hash)
-      .eq("user_id", user_id)
+      .eq("user_id", userId)
       .maybeSingle();
     if (metaErr || !meta) {
       return new Response(JSON.stringify({ error: "Dataset not found or access denied" }), {
@@ -52,7 +28,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Lightweight profile-only fetch — avoids downloading full dataset when caller only needs metadata.
     if (profile_only) {
       const { data: profileRow } = await supa
         .from("dataset_profiles")
@@ -102,16 +77,16 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        // Datasets are content-hash addressed and immutable -> safe to cache privately
         "Cache-Control": "private, max-age=3600, immutable",
       },
     });
   } catch (e) {
     if (e instanceof Response) {
       const body = await e.text().catch(() => "");
+      const ct = e.headers.get("Content-Type") || "application/json";
       return new Response(body || JSON.stringify({ error: "Unauthorized" }), {
         status: e.status,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": ct },
       });
     }
     console.error("dataset-fetch error:", e);

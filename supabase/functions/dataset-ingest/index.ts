@@ -1,19 +1,12 @@
 // Dataset ingest: hash → store → profile → cache
-// Receives the parsed rows (client parses small files), hashes content,
-// stores raw file in Storage, computes server-side profile, caches in DB.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, getServiceClient } from "../_shared/auth.ts";
 import { buildProfile, buildAdvanced } from "../_shared/stats.ts";
+import { ingestSchema, parseOrThrow } from "../_shared/schemas.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
-interface IngestPayload {
-  file_name: string;
-  file_ext: string;
-  // Parsed rows, sent as JSON. (For huge files we'd switch to direct Storage upload.)
-  rows: Record<string, any>[];
-}
-
-// Keep these in sync with src/lib/constants.ts on the client.
-const MAX_PAYLOAD_BYTES = 25 * 1024 * 1024; // 25MB JSON body ceiling
+const MAX_PAYLOAD_BYTES = 25 * 1024 * 1024;
 const MAX_ROWS = 250_000;
 
 async function sha256(text: string): Promise<string> {
@@ -29,39 +22,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Require authenticated user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const anon = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data: userData, error: userErr } = await anon.auth.getUser(authHeader.slice(7));
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const user_id = userData.user.id;
+    const { userId } = await requireUser(req);
+    rateLimitOrThrow(req, userId, LIMITS.ingest);
 
-    const payload: IngestPayload = await req.json();
-    if (!payload?.rows?.length) {
-      return new Response(JSON.stringify({ error: "rows is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const raw = await req.json();
+    const payload = parseOrThrow(ingestSchema, raw) as { file_name: string; file_ext?: string; rows: Record<string, any>[] };
+
     if (payload.rows.length > MAX_ROWS) {
       return new Response(JSON.stringify({ error: `Too many rows (${payload.rows.length}). Max is ${MAX_ROWS}.` }), {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Schema consistency check: warn if column sets vary across rows (drifting CSV)
     const expectedCols = new Set(Object.keys(payload.rows[0] || {}));
     let inconsistentRows = 0;
     for (let i = 1; i < Math.min(payload.rows.length, 1000); i++) {
@@ -69,7 +41,7 @@ Deno.serve(async (req) => {
       if (cols.length !== expectedCols.size || cols.some((c) => !expectedCols.has(c))) {
         inconsistentRows++;
         if (inconsistentRows === 1) {
-          console.warn(`dataset-ingest: schema drift detected at row ${i} — expected [${[...expectedCols].join(",")}] got [${cols.join(",")}]`);
+          console.warn(`dataset-ingest: schema drift detected at row ${i}`);
         }
       }
     }
@@ -84,18 +56,13 @@ Deno.serve(async (req) => {
     }
     const file_hash = await sha256(rowsJson);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supa = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
+    const supa = getServiceClient();
 
-    // Cache hit? Scoped to this user (file_hash is unique per user).
     const { data: ownedDataset } = await supa
       .from("datasets")
       .select("*")
       .eq("file_hash", file_hash)
-      .eq("user_id", user_id)
+      .eq("user_id", userId)
       .maybeSingle();
     const { data: existingProfile } = ownedDataset ? await supa
       .from("dataset_profiles")
@@ -120,7 +87,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Compute profile server-side
     const profile = buildProfile(payload.rows);
     const { correlations, advanced: baseAdvanced } = buildAdvanced(payload.rows, profile);
     const advanced = {
@@ -132,16 +98,14 @@ Deno.serve(async (req) => {
     const health_score =
       totalCells > 0 ? Math.round((1 - nullCells / totalCells) * 100) : 100;
 
-    // Store raw file in Storage — namespaced by user for privacy
-    const storage_path = `${user_id}/${file_hash}.json`;
+    const storage_path = `${userId}/${file_hash}.json`;
     const blob = new Blob([rowsJson], { type: "application/json" });
     await supa.storage.from("datasets").upload(storage_path, blob, { upsert: true });
 
-    // Register
     await supa.from("datasets").upsert(
       {
         file_hash,
-        user_id,
+        user_id: userId,
         file_name: fileName,
         storage_path,
         file_ext: fileExt,
@@ -180,9 +144,10 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof Response) {
       const body = await e.text().catch(() => "");
+      const ct = e.headers.get("Content-Type") || "application/json";
       return new Response(body || JSON.stringify({ error: "Unauthorized" }), {
         status: e.status,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": ct },
       });
     }
     console.error("dataset-ingest error:", e);

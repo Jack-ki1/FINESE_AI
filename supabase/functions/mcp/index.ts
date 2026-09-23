@@ -1,13 +1,8 @@
-// MCP server for FINESE AI — standalone.
-// Implements minimal MCP JSON-RPC over HTTP (tools/list, tools/call) with CORS.
+// MCP server for FINESE AI — requires authentication.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type, accept, x-client-info, apikey",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-};
-
-// Sample datasets (inlined for edge runtime)
 const salesData = [
   { region: "North", product: "Widget A", revenue: 12400, quantity: 62, date: "2024-01-15", customer_type: "Enterprise" },
   { region: "South", product: "Widget B", revenue: 8900, quantity: 45, date: "2024-01-18", customer_type: "SMB" },
@@ -98,10 +93,49 @@ const manifest = {
   tools: tools.map(t => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema })),
 };
 
+async function requireMcpAuth(req: Request): Promise<string> {
+  const auth = req.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) {
+    throw new Response(JSON.stringify({ error: "Unauthorized — MCP requires Bearer token (MCP_API_KEY or Supabase JWT)" }), {
+      status: 401,
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    });
+  }
+  const token = auth.slice(7).trim();
+  const mcpKey = Deno.env.get("MCP_API_KEY");
+  if (mcpKey && token === mcpKey) return `mcp-key:${token.slice(0,8)}`;
+  // Fall back to Supabase JWT validation
+  const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+  const { data, error } = await anon.auth.getUser(token);
+  if (!error && data?.user) return data.user.id;
+  throw new Response(JSON.stringify({ error: "Unauthorized — invalid MCP token" }), {
+    status: 401,
+    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = new URL(req.url);
+  // Auth gate — every request must present a valid MCP key or Supabase JWT
+  let callerId: string;
+  try {
+    callerId = await requireMcpAuth(req);
+  } catch (e) {
+    if (e instanceof Response) return e;
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  // Rate limit per caller
+  try {
+    rateLimitOrThrow(req, callerId, LIMITS.mcp);
+  } catch (e) {
+    if (e instanceof Response) return e;
+    throw e;
+  }
+
   if (req.method === "GET") {
     return new Response(JSON.stringify(manifest), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
@@ -111,10 +145,6 @@ Deno.serve(async (req) => {
 
   const method = body.method;
   const id = body.id;
-
-  if (method === "tools/list" || body.jsonrpc === "2.0" && !method) {
-    // Some clients send empty method for list
-  }
 
   if (method === "tools/list") {
     return new Response(JSON.stringify({ jsonrpc: "2.0", id, result: { tools: manifest.tools } }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -132,7 +162,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // REST fallback: { tool, args }
   if (body.tool) {
     const tool = tools.find(t => t.name === body.tool);
     if (!tool) return new Response(JSON.stringify({ error: `Unknown tool ${body.tool}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

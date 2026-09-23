@@ -10,15 +10,20 @@ async function load() {
   if (pyodide) return pyodide;
   if (loading) return loading;
   loading = (async () => {
-    // Pyodide version pinned to match package.json (^0.29.3) to avoid drift.
-    // Self-hosting via npm package is preferred for offline/enterprise; CDN is fallback.
-    // To self-host, run `npm run build` and serve `node_modules/pyodide` from your CDN/assets.
+    // Prefer self-hosted bundle at /pyodide/ (run `npm run vendor:pyodide`); fallback to CDN.
     const CDN_VERSION = "v0.29.3";
-    // @ts-ignore - dynamic import from CDN to keep bundle small; swap to local import for self-host
-    const { loadPyodide } = await import(`https://cdn.jsdelivr.net/pyodide/${CDN_VERSION}/full/pyodide.mjs`);
-    pyodide = await loadPyodide({
-      indexURL: `https://cdn.jsdelivr.net/pyodide/${CDN_VERSION}/full/`,
-    });
+    const CDN_URL = `https://cdn.jsdelivr.net/pyodide/${CDN_VERSION}/full/`;
+    const LOCAL_URL = "/pyodide/";
+    let indexURL = CDN_URL;
+    let loadUrl = `${CDN_URL}pyodide.mjs`;
+    // Probe local bundle first
+    try {
+      const probe = await fetch(`${LOCAL_URL}pyodide.mjs`, { method: 'HEAD' });
+      if (probe.ok) { indexURL = LOCAL_URL; loadUrl = `${LOCAL_URL}pyodide.mjs`; }
+    } catch {}
+    // @ts-expect-error - dynamic import keeps bundle small; swap to local import for self-host
+    const { loadPyodide } = await import(/* @vite-ignore */ loadUrl);
+    pyodide = await loadPyodide({ indexURL });
     await pyodide.loadPackage(["pandas", "numpy"]);
     return pyodide;
   })();

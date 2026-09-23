@@ -7,17 +7,28 @@ interface AuthCtx {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
 }
 
-const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {} });
+const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {}, isAdmin: false });
 
-// OPEN MODE: frozen auth — always return a mock admin session so the app is fully open
-const MOCK_KEY = 'finese_admin_mock_session';
-function createOpenSession(): Session {
+function checkIsAdmin(user: User | null): boolean {
+  if (!user) return false;
+  const meta = (user.user_metadata as any) || {};
+  const appMeta = (user.app_metadata as any) || {};
+  if (meta.is_admin === true || appMeta.is_admin === true) return true;
+  // Optional allow-list via env (comma-separated)
+  const allow = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((s:string)=>s.trim().toLowerCase()).filter(Boolean);
+  if (allow.length && user.email && allow.includes(user.email.toLowerCase())) return true;
+  return false;
+}
+
+const LOCAL_BYPASS = import.meta.env.DEV && import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
+function createLocalSession(): any {
   const now = Math.floor(Date.now()/1000);
   return {
-    access_token: 'open-mode-jwt',
-    refresh_token: 'open-mode-refresh',
+    access_token: 'local-dev-bypass',
+    refresh_token: 'local-dev-bypass',
     expires_in: 86400,
     expires_at: now + 86400,
     token_type: 'bearer',
@@ -25,80 +36,74 @@ function createOpenSession(): Session {
       id: '00000000-0000-4000-a000-000000000001',
       aud: 'authenticated',
       role: 'authenticated',
-      email: 'finese_admin@gmail.com',
+      email: 'local-dev@finese.ai',
       email_confirmed_at: new Date().toISOString(),
-      user_metadata: { is_admin: true, name: 'FINESE Admin (Open Mode)' },
+      user_metadata: { is_admin: true, name: 'Local Dev (bypass)' },
       app_metadata: { provider: 'email' },
       created_at: new Date().toISOString(),
-    } as any,
-  } as any;
-}
-function loadMockSession(): Session | null {
-  try {
-    const raw = localStorage.getItem(MOCK_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) {
-        localStorage.removeItem(MOCK_KEY);
-      } else {
-        return parsed as Session;
-      }
-    }
-  } catch {}
-  // OPEN MODE: if no mock, create one automatically so app is always open
-  if (import.meta.env.VITE_OPEN_MODE !== 'false') {
-    const open = createOpenSession();
-    try { localStorage.setItem(MOCK_KEY, JSON.stringify(open)); } catch {}
-    return open;
-  }
-  return null;
+    },
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(() => {
+    if (LOCAL_BYPASS) {
+      try {
+        const raw = localStorage.getItem('finese_local_session');
+        if (raw) return JSON.parse(raw) as Session;
+        const s = createLocalSession();
+        localStorage.setItem('finese_local_session', JSON.stringify(s));
+        return s as any;
+      } catch { return createLocalSession() as any; }
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(!LOCAL_BYPASS);
 
   useEffect(() => {
-    // OPEN MODE: always open — return mock immediately
-    const mock = loadMockSession();
-    if (mock) {
-      setSession(mock as any);
-      setLoading(false);
-      // Still sync with Supabase in background if reachable, but don't block
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session && !(loadMockSession() as any)?.user?.user_metadata?.is_admin) {
-          // ignore real session in open mode
-        }
-      }).catch(()=>{});
-      return;
-    }
+    if (LOCAL_BYPASS) return;
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 3000);
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
-      if (loadMockSession()) return;
+      if (cancelled) return;
       setSession(s);
       setLoading(false);
+      clearTimeout(timeout);
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (loadMockSession()) return;
+      if (cancelled) return;
       setSession(data.session);
       setLoading(false);
+      clearTimeout(timeout);
     }).catch(() => {
-      const m = loadMockSession();
-      if (m) setSession(m as any);
-      setLoading(false);
+      if (!cancelled) setLoading(false);
+      clearTimeout(timeout);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
-    try { localStorage.removeItem(MOCK_KEY); } catch {}
+    if (LOCAL_BYPASS) {
+      try { localStorage.removeItem('finese_local_session'); } catch {}
+      try { localStorage.removeItem('finese-ai-store'); } catch {}
+      window.location.href = '/auth';
+      return;
+    }
     try { await supabase.auth.signOut(); } catch {}
-    // Clear persisted store so next user doesn't inherit sessions
     try { localStorage.removeItem('finese-ai-store'); } catch {}
     window.location.href = '/auth';
   };
 
+  const user = session?.user ?? null;
+
   return (
-    <Ctx.Provider value={{ session, user: session?.user ?? null, loading, signOut }}>
+    <Ctx.Provider value={{ session, user, loading, signOut, isAdmin: checkIsAdmin(user) }}>
       {children}
     </Ctx.Provider>
   );

@@ -32,7 +32,7 @@ export function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
-// Static wildcard headers for backwards-compat / OPTIONS preflight when no request context.
+// Backwards-compat: use getCorsHeaders(req) instead; this constant is kept only for edge cases.
 export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

@@ -23,20 +23,23 @@ Rules:
 
 | Function | Responsibility |
 | --- | --- |
-| `dataset-ingest` | Validates size/row caps + schema drift, stores dataset, builds column profile, caches in DB |
-| `dataset-fetch` | Authenticated, cacheable read proxy for stored datasets; supports `profile_only` lightweight fetch |
-| `dataset-profile` | Lightweight alias — returns cached profile without downloading rows (used for session switching) |
-| `compute-tools` | Real statistics and ML (correlation, t-test/ANOVA, regression, K-Means, drift PSI+KS, classifier holdout); in-memory cache per file_hash |
-| `datum-chat` | AI orchestration + tool calling (6 rounds, safe truncation, arg validation, history cap 30, fallback models); streams responses |
-| `mcp` | Public MCP server for external agents |
-| `_shared` | Shared helpers: CORS allow-list (`ALLOWED_ORIGINS` env), stats, auth |
+| `dataset-ingest` | Validates size/row caps (zod) + schema drift, stores dataset, builds column profile, caches in DB — rate-limited |
+| `dataset-fetch` | Authenticated, cacheable read proxy for stored datasets; supports `profile_only` lightweight fetch — validated + rate-limited |
+| `dataset-profile` | Lightweight alias — returns cached profile without downloading rows (used for session switching) — validated + rate-limited |
+| `compute-tools` | 12 verified tools (describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift) + zod validation, rate limiting, per-file cache |
+| `FINESE-chat` | AI orchestration + tool-calling loop (6 rounds, history cap 30, SSRF-safe gateway, zod validation, rate limiting); streams via SSE — single function (datum-chat removed) |
+| `mcp` | MCP server for external agents — requires `MCP_API_KEY` or Supabase JWT, rate-limited, zod-validated |
+| `_shared` | Shared helpers: CORS allow-list (`ALLOWED_ORIGINS` env), `auth` (strict JWT), `stats` (single source via `shared/`), `schemas` (zod), `rate-limit` (in-memory) |
 
 Rules:
-- Every function requires a valid session token and verifies row ownership.
-- CORS `Access-Control-Allow-Origin` is restricted via `ALLOWED_ORIGINS` env var (defaults to `*` only when not set — dev mode).
-- All tables use owner-only row level security; storage objects live under `<user_id>/`.
-- Errors returned to the client are generic; details stay in server logs.
-- Verified artifacts (`verified:true`) show a green badge; estimated artifacts show amber "Estimated" badge.
+- Every function requires a valid JWT via `requireUser()` (no magic tokens) and verifies row ownership; service-role bypasses RLS only after auth.
+- All inputs validated with `zod` via `_shared/schemas.ts` before touching DB/compute.
+- Rate limiting per user/IP on every function (`_shared/rate-limit.ts`) — chat 20/min, compute 40/min, ingest 10/min.
+- CORS `Access-Control-Allow-Origin` restricted via `ALLOWED_ORIGINS` env var (defaults to `*` only when not set — dev mode).
+- SSRF-safe AI gateway: custom `baseUrl` requires own `apiKey`, never borrows server `AI_API_KEY`; provider allow-list only.
+- All tables use owner-only RLS; storage objects live under `<user_id>/`.
+- Errors returned to clients are generic; details stay in server logs.
+- Verified artifacts (`verified:true`, teal solid) = server-computed; Estimated (`verified:false`, ochre dashed) = AI-generated; Offline preview (local JS) = dashed ochre with "Offline preview" label, never marked Verified.
 
 ## Responsive behaviour
 

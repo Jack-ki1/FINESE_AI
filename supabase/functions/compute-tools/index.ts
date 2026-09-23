@@ -1,19 +1,13 @@
 // Real compute tools — HTTP handler + dataset cache + registry lookup only
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUser, getServiceClient } from "../_shared/auth.ts";
 import { TOOLS } from "./registry.ts";
+import { computeToolsSchema, parseOrThrow } from "../_shared/schemas.ts";
+import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
 
 function supa() {
-  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-}
-async function requireUser(req: Request): Promise<string> {
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) throw new Response("Unauthorized", { status: 401 });
-  const token = auth.slice(7);
-  const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-  const { data, error } = await anon.auth.getUser(token);
-  if (error || !data?.user) throw new Response("Unauthorized", { status: 401 });
-  return data.user.id;
+  return getServiceClient();
 }
 const datasetCache = new Map<string, { data: any[]; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -39,17 +33,19 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const user_id = await requireUser(req);
-    const { tool, args, file_hash } = await req.json();
-    if (!tool || !TOOLS[tool]) return new Response(JSON.stringify({ error: "Unknown tool: " + tool }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!file_hash) return new Response(JSON.stringify({ error: "file_hash required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const data = await loadDataset(file_hash, user_id);
+    const { userId } = await requireUser(req);
+    rateLimitOrThrow(req, userId, LIMITS.compute);
+    const raw = await req.json();
+    const { tool, args, file_hash } = parseOrThrow(computeToolsSchema, raw) as { tool: string; args?: any; file_hash: string };
+    if (!TOOLS[tool]) return new Response(JSON.stringify({ error: "Unknown tool: " + tool }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const data = await loadDataset(file_hash, userId);
     const result = TOOLS[tool](args || {}, data);
     return new Response(JSON.stringify({ tool, result }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     if (e instanceof Response) {
       const body = await e.text().catch(() => "");
-      return new Response(body || JSON.stringify({ error: "Unauthorized" }), { status: e.status, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+      const ct = e.headers.get("Content-Type") || "application/json";
+      return new Response(body || JSON.stringify({ error: "Unauthorized" }), { status: e.status, headers: { ...getCorsHeaders(req), "Content-Type": ct } });
     }
     console.error("compute-tools error:", e);
     return new Response(JSON.stringify({ error: "Compute tool failed. Please try again." }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });

@@ -22,37 +22,10 @@ export default function Auth() {
     if (!loading && session) navigate('/chat', { replace: true });
   }, [session, loading, navigate]);
 
-  // Building-phase local fallback: finese_admin@gmail.com / finese_admin1 works even when Supabase is down (ENOTFOUND/Failed to fetch)
-  const createMockSession = (email: string) => {
-    const now = Math.floor(Date.now()/1000);
-    const mockUser: any = {
-      id: '00000000-0000-4000-a000-000000000001',
-      aud: 'authenticated',
-      role: 'authenticated',
-      email,
-      email_confirmed_at: new Date().toISOString(),
-      user_metadata: { is_admin: true },
-      app_metadata: { provider: 'email' },
-      created_at: new Date().toISOString(),
-    };
-    const mockSession: any = {
-      access_token: 'mock-admin-jwt',
-      refresh_token: 'mock-refresh',
-      expires_in: 86400,
-      expires_at: now + 86400,
-      token_type: 'bearer',
-      user: mockUser,
-    };
-    try { localStorage.setItem('finese_admin_mock_session', JSON.stringify(mockSession)); } catch {}
-    // Also set session in supabase client storage so useAuth picks it up on reload
-    window.location.href = '/admin';
-  };
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
-    const isAdminCreds = email.trim().toLowerCase() === 'finese_admin@gmail.com' && password === 'finese_admin1';
     try {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
@@ -69,20 +42,6 @@ export default function Auth() {
       }
     } catch (err: any) {
       const msg = err?.message || 'Authentication failed';
-      const isFetchFail = msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('fetch failed') || msg.toLowerCase().includes('network');
-      // Fallback for building phase: allow admin creds when Supabase unreachable
-      if (isAdminCreds && isFetchFail) {
-        toast.success('Supabase unreachable — using local admin fallback');
-        createMockSession(email.trim().toLowerCase());
-        return;
-      }
-      // Also allow admin creds directly if Supabase returns "Invalid login credentials" but project is down — treat as fallback
-      if (isAdminCreds && msg.toLowerCase().includes('invalid')) {
-        // Try fallback as well — maybe user not yet created
-        toast.success('Using local admin fallback');
-        createMockSession(email.trim().toLowerCase());
-        return;
-      }
       toast.error(msg.includes('already registered') ? 'Email already in use — try signing in instead.' : msg);
     } finally {
       setBusy(false);
@@ -98,7 +57,6 @@ export default function Auth() {
         options: { redirectTo: window.location.origin },
       });
       if (error) throw error;
-      // supabase will redirect, so no further handling needed
     } catch (err: any) {
       toast.error(err?.message || 'Google sign-in failed');
     } finally {
@@ -121,19 +79,18 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
-      {/* Background flourish */}
       <div className="absolute inset-0 pointer-events-none opacity-60">
         <div className="absolute top-[-10%] left-[-10%] w-[42rem] h-[42rem] rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[36rem] h-[36rem] rounded-full bg-datum-cyan/15 blur-3xl" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[36rem] h-[36rem] rounded-full bg-[hsl(var(--verified))]/12 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="p-[2px] rounded-2xl bg-gradient-to-br from-primary via-datum-violet to-datum-cyan shadow-lg">
+          <div className="p-[2px] rounded-2xl bg-brand-gradient shadow-lg">
             <img src={fineseLogo} alt="FINESE AI" className="w-14 h-14 rounded-2xl object-cover" />
           </div>
           <h1 className="mt-5 font-display font-extrabold text-3xl tracking-tight text-foreground">
-            FINESE <span className="bg-gradient-to-r from-primary to-datum-cyan bg-clip-text text-transparent">AI</span>
+            FINESE <span className="text-brand-gradient">AI</span>
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {mode === 'signin' ? 'Sign in to your workspace' : 'Create your workspace'}

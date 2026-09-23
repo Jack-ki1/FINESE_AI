@@ -1,0 +1,2 @@
+npx lint-staged 2>/dev/null || npm run lint
+npx tsc --noEmit

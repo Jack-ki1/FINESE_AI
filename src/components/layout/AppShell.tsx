@@ -1,12 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { ChangelogSidebar } from './ChangelogSidebar';
-import { EvidenceRail } from './EvidenceRail';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDatumStore } from '@/store/datum.store';
 import { CommandPalette } from './CommandPalette';
-import { useState, useEffect } from 'react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false);
@@ -36,9 +34,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           </main>
-          <div className="hidden xl:flex shrink-0">
-            <EvidenceRail />
-          </div>
           <ChangelogSidebar />
         </div>
       </div>

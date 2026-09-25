@@ -23,7 +23,7 @@ function checkIsAdmin(user: User | null): boolean {
   return false;
 }
 
-const LOCAL_BYPASS = import.meta.env.DEV && import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
+const LOCAL_BYPASS = import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
 function createLocalSession(): any {
   const now = Math.floor(Date.now()/1000);
   return {

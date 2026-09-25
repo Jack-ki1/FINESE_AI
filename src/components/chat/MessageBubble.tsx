@@ -36,10 +36,10 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
   };
 
   return (
-    <div className={`group flex gap-3 px-4 sm:px-6 py-5 ${isPinned ? 'bg-black/[0.02] dark:bg-white/[0.02] border-l-2 border-black/10 dark:border-white/10' : ''} ${isUser ? 'bg-black/[0.02] dark:bg-white/[0.02]' : 'bg-transparent'}`}>
-      {/* Avatar — ChatGPT style */}
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card border border-border'}`}>
-        {isUser ? <span className="text-[11px] font-medium">U</span> : <img src={fineseLogo} alt="F" className="w-7 h-7 rounded-full object-cover" />}
+    <div className={`group flex gap-3 px-4 sm:px-6 py-5 ${isPinned ? 'bg-orange-500/[0.06] border-l-2 border-orange-400' : ''} ${isUser ? 'bg-gradient-to-r from-orange-500/[0.04] to-amber-500/[0.04] border-l-2 border-orange-200/50' : 'bg-transparent'}`}>
+      {/* Avatar — orange glow */}
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${isUser ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-orange-500/20' : 'bg-white dark:bg-zinc-800 border-2 border-orange-200 dark:border-orange-900/50 shadow-orange-500/10'}`}>
+        {isUser ? <span className="text-[11px] font-bold">U</span> : <img src={fineseLogo} alt="F" className="w-7 h-7 rounded-full object-cover" />}
       </div>
 
       {/* Content — ChatGPT style, centered, max width */}
@@ -55,7 +55,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
             </div>
           ) : (
             <div className="flex flex-col items-end gap-2">
-              <div className="px-4 py-2.5 rounded-2xl bg-secondary text-secondary-foreground text-[15px] leading-relaxed max-w-[85%] ml-auto">
+              <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20 text-[15px] leading-relaxed max-w-[85%] ml-auto">
                 {message.content}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

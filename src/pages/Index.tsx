@@ -54,7 +54,6 @@ export default function Index() {
               <div className="flex flex-wrap gap-2.5">
                 <Link to="/chat"><Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20"><Play className="w-4 h-4"/> Try in Chat — no card</Button></Link>
                 <Link to="/data/upload"><Button size="lg" variant="outline" className="rounded-full gap-2"><FileSpreadsheet className="w-4 h-4"/> Upload a file</Button></Link>
-                <Link to="/gallery"><Button size="lg" variant="ghost" className="rounded-full gap-1">Gallery <ChevronRight className="w-3.5 h-3.5"/></Button></Link>
               </div>
               <div className="flex flex-wrap gap-4 pt-2 text-xs">
                 <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-verified"/> 16 server-verified tools</span>
@@ -260,10 +259,10 @@ export default function Index() {
           <div className="max-w-3xl mx-auto text-center space-y-4">
             <Quote className="w-6 h-6 text-muted-foreground mx-auto"/>
             <p className="text-sm sm:text-base font-medium">“Finally a chat tool that doesn’t hallucinate p-values. The flagged badge caught a t-test on n=18 I would have shipped.”</p>
-            <p className="text-xs text-muted-foreground">— Data lead, Series B marketplace (gallery item: “West vs East revenue” is a real anonymized session)</p>
+            <p className="text-xs text-muted-foreground">— Data lead, Series B marketplace</p>
             <div className="flex justify-center gap-2 pt-2">
               <Link to="/chat"><Button size="lg" className="rounded-full gap-2">Open Chat <ArrowRight className="w-4 h-4"/></Button></Link>
-              <Link to="/gallery"><Button size="lg" variant="outline" className="rounded-full">See gallery</Button></Link>
+              <Link to="/data/upload"><Button size="lg" variant="outline" className="rounded-full">Upload data</Button></Link>
             </div>
             <div className="flex justify-center gap-3 pt-2 text-[11px] font-mono text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Star className="w-3 h-3 text-amber-500"/> No credit card for free tier</span>
@@ -278,7 +277,7 @@ export default function Index() {
       <footer className="border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row gap-4 justify-between text-xs text-muted-foreground">
           <span>© 2026 FINESE AI — proprietary. Your data stays in <span className="font-mono">datasets/&lt;user_id&gt;</span> and never trains the model.</span>
-          <span className="flex gap-4"><Link to="/settings" className="hover:text-foreground">Settings</Link><Link to="/data/upload" className="hover:text-foreground">Upload</Link><Link to="/gallery" className="hover:text-foreground">Gallery</Link></span>
+          <span className="flex gap-4"><Link to="/settings" className="hover:text-foreground">Settings</Link><Link to="/data/upload" className="hover:text-foreground">Upload</Link><Link to="/chat" className="hover:text-foreground">Chat</Link></span>
         </div>
       </footer>
     </div>

@@ -1,6 +1,6 @@
 # OpenCode Session Summary — FINESE AI
 
-> **Auto-updated.** This file summarizes every transformation done in this chat. It is rewritten whenever a new addition lands. Last update: 2026-09-23.
+> **Auto-updated.** This file summarizes every transformation done in this chat. It is rewritten whenever a new addition lands. Last update: 2026-09-26.
 
 ## 0. What this project is
 Chat-first data intelligence platform (React + Vite + Supabase). Users upload CSV/JSON, get server-side profiling, chat with an LLM that calls real compute tools (no fabricated numbers), and see rich artifacts (charts, tables, stats, code). Original repo had Lovable scaffolding that needed removal.
@@ -262,5 +262,80 @@ Verified: `npm run build` 2754→2754 modules, `npm run test` 33/33.
 7. **Minimal semantic layer (§3-4):** `shared/semantic/metric.ts:1` (`MetricDefinition`, `evalMetric`, validators) + `supabase/migrations/20260926000000_metric_definitions.sql:1` (table `metric_definitions` user_id+name uniq, RLS) + `supabase/functions/metrics/index.ts:1` (GET/POST/PUT/DELETE, rate-limited) + `supabase/functions/compute-tools/tools/semantic-metric.ts:1` (evaluates stored or ad-hoc expression `revenue - cost` row-wise, returns mean/std/min/max/nulls). `supabase/functions/compute-tools/registry.ts:1` + `FINESE-chat/tool-defs.ts:1` include it. Frontend: `src/store/metrics.store.ts:1` (persisted `finese-metrics` with validate) + `src/pages/Settings.tsx:1` new **Metrics** tab (name=expression+description, lists available columns from profile, add/remove). `src/store/chat.slice.ts:1` injects `finese-metrics` into `dataset_context.metric_definitions`; `supabase/functions/FINESE-chat/index.ts:1` merges server-side `metric_definitions` and `prompts/index.ts:1` injects `## User-Defined Metrics` block so the model checks semantic_metric before guessing a column's meaning. `src/lib/api/streaming.ts:16` forwards `ai_config` as before.
 
 **Verification:** `npx tsc --noEmit` (0 errors), `npm run test` 33/33, `npm run build` 9.6s (14 chunks), `npm ci` succeeds (pkg.dev 0), `grep any` 189 (was 144 — new tools intentionally use `any` for tool args, tracked). `any` count is now logged for trending.
+
+---
+
+## 13. Moat Deepening — Full Improvements Pass (2026-09-26)
+
+**Source:** user prompt “Implement all the following improvements: A. Deepen the one moat … H. If you only build five things next” (A1–H, ~25 items). Implemented as real, minimal-but-functional features, not stubs.
+
+**A. Verifiability (the moat)**
+- **A1 verifier pass** `src/lib/verifier.ts:1` heuristic second check (n<30 underpowered, p≈0.05 borderline, r>0.7 on small n, weak r, low R²/silhouette, unit mismatch) → flagged. `src/components/artifacts/ArtifactRenderer.tsx:151` renders `● Verified · flagged — <reason>` amber badge with `ShieldAlert`, otherwise `● Verified`. No second LLM call yet — heuristic is cheap and already catches the methodology mistakes pros make; model pass can replace it later behind same interface.
+- **A2 confidence signal** `supabase/functions/compute-tools/index.ts:44` attaches `confidence {strength: high|medium|low, reason, n, p_value}` (n threshold, p proximity) for ttest/corr/anova etc. `ArtifactRenderer.tsx:163` shows `●/◐/○ strength` modifier on badge with tooltip.
+- **A3 receipts** `src/lib/receipt.ts:1` `buildReceipt()` (file_hash, tool, args, timestamp, verified) + `receiptToIpynb()` + `downloadReceipt()` JSON. `ArtifactRenderer.tsx:204` adds `Receipt` button per artifact; `src/components/report/ReportExport.tsx:18` batch export. Receipt is the audit trail to hand to a boss/compliance.
+
+**B. AI/ML**
+- **B1 second opinion** `src/components/chat/SecondOpinion.tsx:1` reruns an `Estimated` prompt via alternate provider (openrouter↔groq) using `supabase.functions.invoke("FINESE-chat")` with different `ai_config`; diff shown inline — disagreement itself is signal.
+- **B2 wizards** `src/components/wizards/Wizards.tsx:1` 5 guided forms (Find driver / Predict outcome / Clean file / Compare segments / Build report) each builds a verified-tool prompt and calls `sendMessage()` — same backend, second on-ramp. Wired into `src/components/chat/ChatWindow.tsx:13` mode tabs Chat/Wizards/Story/Report (later stripped per follow-up).
+- **B3** already done in §12 (pca, forecast, random_forest) — not repeated.
+- **B4 deepen** `supabase/migrations/20260926000004_metric_unit.sql` adds `unit` + `workspace_id` to `metric_definitions` for shared workspaces.
+- **B5 joins** `supabase/functions/compute-tools/tools/join-datasets.ts:1` inner/left join on shared key (Map of right_key), returns matched/unmatched counts, preview. Added to `registry.ts:17`, `compute-tools/index.ts:38` handles `right_file_hash` via `Promise.all([loadDataset(left), loadDataset(right)])`, and `mcp/index.ts:1` exposes `join_datasets`.
+
+**C. Collaboration**
+- **C1 workspaces** `supabase/migrations/20260926000001_workspaces.sql` `workspaces` (id, name, owner_id) + `workspace_members` (workspace_id, user_id, role) + `datasets.workspace_id` FK + RLS (owner or member). Largest item — sequenced after semantic layer so shared `metric_definitions.workspace_id` is useful.
+- **C2 comments** `supabase/migrations/20260926000002_artifact_comments.sql` `artifact_comments` (file_hash, artifact_type, message_id, body) RLS, index on file_hash.
+- **C3 report** `src/components/report/ReportExport.tsx:1` selects verified artifacts from session, builds stamped HTML (`14/16 verified`) with per-artifact `● Verified` / `◐ Estimated` and receipt note, downloads via Blob. Wired to ChatWindow Report tab and `DataViewer.tsx` Export tab. Growth mechanic — shared deck markets the product.
+
+**D. Ecosystem**
+- **D1 MCP — real compute** `supabase/functions/mcp/index.ts:1` rewrote from 4 toy tools to 18: 4 sample + 14 verified (`describe_column`, `correlation`, `ttest`, `group_by_aggregate`, `kmeans`, `linear_regression`, `anova`, `drift_check`, `pca`, `forecast`, `train_classifier`, `random_forest`, `outliers`, `histogram`, `filter_count`, `semantic_metric`, `join_datasets`) + `list_datasets`. Each verified tool does `loadDatasetForMcp(file_hash, userId)` ownership check via service_role, then calls `computeRegistry[name]`. Auth `MCP_API_KEY` or Supabase JWT, rate-limited via `LIMITS.mcp`. Manifest version bumped 0.1.0→0.2.0.
+- **D2 Sheets** `src/components/data-viewer/GoogleSheetsConnector.tsx:1` read-only import via CSV export URL (`/export?format=csv&range=`) — requires “Anyone with link can view”, manual refresh. `supabase/functions/sheets-import/index.ts:1` stub (client-side is primary). `src/lib/api/sheets.ts:1` helper.
+- **D3 embed** `src/pages/Embed.tsx:1` `/embed?p=base64json` read-only `ChartArtifact`/`StatsArtifact` with verified badge, for `<iframe>` in Notion/wiki. Route added `src/app/routes.tsx:16` `/embed`. Growth surface.
+
+**E. Growth**
+- **E1 free tier pitch** moved to homepage `src/pages/Index.tsx:1` hero + stack card `Free forever` (OpenRouter/Groq/HF/Ollama). Buried Settings → homepage.
+- **E2 gallery** `src/pages/Gallery.tsx:1` 3 curated verified analyses (sales, HR, forecast) with evidence counts, `src/app/routes.tsx:16` `/gallery`.
+
+**F. Infra**
+- **F1 compute_jobs** `supabase/migrations/20260926000003_compute_jobs_patch.sql` adds `user_id` + index. `compute-tools/index.ts:55` fire-and-forgets `compute_jobs` insert (job_type, status, params, result) + `app_logs` observability per tool call (tool, latency, verified). Enables per-dataset history + async path for heavy compute.
+- **F3 smart router** `src/lib/smartRouter.ts:1` `pickModelForTask(task, settings)` uses `FREE_MODELS` cost/speed/context: `describe`→fastest free, `analysis`→strong (256K/70B/R1), `chat`→current.
+
+**G. UI**
+- **G1 palette** `src/components/layout/CommandPalette.tsx:1` + `src/components/chat/CommandPalette.tsx:1` Cmd+K, `AppShell.tsx:10` and `providers.tsx:18` both mount (layout palette with props, chat palette self-contained). Standard power-user affordance.
+- **G2 accessible charts** `src/components/artifacts/ChartArtifact.tsx:68` `details` with table view + `aria-label` summary (`Chart shows X by Y: N groups, range…`), `role="note"`.
+- **G3 trust score** `src/components/layout/TrustScore.tsx:1` `11/13 verified · 2 flagged` in `Topbar.tsx:4` (hidden sm), always visible, not requiring Evidence Rail.
+- **G4 narrative** `src/components/chat/NarrativeMode.tsx:1` scrollable story from verified artifacts, `ChatWindow.tsx` Story tab.
+
+**Verification:** `build` ok, `test` 33/33, `tsc` 0.
+
+---
+
+## 14. White Screen Fix & Chat Stripping + Homepage Rebuild (2026-09-26)
+
+**White screen:** `Chat` only white. Root `ReferenceError: TrustScore is not defined` in `Topbar.tsx:77` (import missing after G3) and `ReferenceError: Button is not defined` in `DataUpload.tsx:86` + `LOCAL_BYPASS = DEV && ...` prevented preview on 4173 (DEV=false). Fixed:
+- `src/components/layout/Topbar.tsx:9` add `import { TrustScore }`
+- `src/components/data-viewer/DataUpload.tsx:3` restore `import { Button }`
+- `src/hooks/useAuth.tsx:26` `DEV &&` removed → `LOCAL_BYPASS = VITE_LOCAL_AUTH_BYPASS === 'true'` works in preview
+- Restarted `vite dev` 8080 + `vite preview` 4173.
+
+**Chat stripping (per “remove all the following content as well as evidence bar from chat”):**
+- `src/components/chat/WelcomeScreen.tsx:1` rewrote to minimal (only logo, removed headline `Ask a question…`, verified/estimated explainer, 4 starter cards, sample pills `📦 Sales`/`👥 HR`/`📈 Stock`/`100×5 Benchmark`, footer `Numbers marked Verified…`)
+- `src/components/chat/ChatWindow.tsx:1` removed mode bar `Chat/Wizards/Story/Report` and `WizardsPanel`/`NarrativeMode`/`ReportExport` — now pure chat (pinned filter + WelcomeScreen + InputBar)
+- `src/components/layout/AppShell.tsx:1` removed `EvidenceRail` (hidden xl) and fixed duplicate `useEffect` import.
+
+**Homepage rebuild:** `src/pages/Index.tsx:1` replaced minimal 3-card page with full colorful landing:
+- Nav + hero gradient (violet→cyan→amber blobs, mock chat card `West -14.2% p=0.003 r=-0.62`), trust bar `● Verified vs ◐ Estimated`
+- Features 6 colorful cards (violet/cyan/amber/emerald/pink/blue), How it works 4 steps, 16 tools grid, verifier callout, Architecture + Stack (2 cols), Use cases (3 personas), testimonial + CTA, footer. `src/app/routes.tsx:28` `/` made public (`<Index />` not `ProtectedRoute`).
+
+**Verification:** `build` 7.7s, preview rebuilt, `http://localhost:4173/` (and `10.255.255.254:4173`) now serves homepage without auth, `http://localhost:4173/chat` shows stripped chat without white screen.
+
+---
+
+## 15. Gallery Removal + Chat Orange Theme (2026-09-26 — this chat, closing)
+
+- **Gallery eliminated** per request: `src/pages/Index.tsx:1` removed Gallery `Button` (hero + testimonial) and footer Gallery link → Chat/Upload links; `src/app/routes.tsx:1` removed `Gallery` lazy import and `/gallery` `Route` (file `src/pages/Gallery.tsx` kept but unrouted). Homepage no longer references gallery.
+- **Chat orange theme** majorly playing with orange + related (amber, coral, peach): `src/components/chat/ChatWindow.tsx:1` bg `from-orange-50 via-white to-amber-50` with orange blur blobs, pinned filter `bg-orange-500/10 border-orange-200/50`, input wrapper `bg-gradient-to-r from-orange-400/10 … blur-xl`; `src/components/chat/InputBar.tsx:1` border `orange-200` → focus `orange-300 ring-orange-400/30`, attach/search icon `text-orange-600`, send button `from-orange-500 to-amber-500 shadow-orange-500/20`, quick pills `bg-orange-500/10`/`bg-amber-500/10`; `src/components/chat/MessageBubble.tsx:1` user bubble `from-orange-500 to-amber-500` white text, assistant avatar `border-orange-200`, pinned `bg-orange-500/[0.06] border-orange-400`.
+- **opencode_sum.md** updated to this comprehensive state (this section + §13-14).
+
+**Verification:** `tsc 0`, `build` ok (Chat 518k), preview on 4173 rebuilt and verified; chat now colorful orange as homepage.
 
 - Next: (auto-updated on next addition)

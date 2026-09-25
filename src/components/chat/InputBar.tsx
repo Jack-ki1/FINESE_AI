@@ -115,9 +115,9 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
       )}
 
       <div
-        className={`rounded-[26px] border bg-white dark:bg-[#2f2f2f] shadow-sm transition-all duration-200 ${
-          dragOver ? 'border-black/20 dark:border-white/20 shadow-lg ring-2 ring-black/5 dark:ring-white/5' : 'border-black/10 dark:border-white/10'
-        } ${focused ? 'shadow-md ring-1 ring-black/5 dark:ring-white/10' : ''}`}
+        className={`rounded-[26px] border-2 bg-white dark:bg-zinc-900 shadow-sm transition-all duration-200 ${
+          dragOver ? 'border-orange-400 shadow-lg shadow-orange-500/20 ring-2 ring-orange-500/20' : 'border-orange-200 dark:border-orange-900/50'
+        } ${focused ? 'shadow-md shadow-orange-500/10 ring-2 ring-orange-400/30 border-orange-300' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
@@ -148,10 +148,10 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
         {/* Input — ChatGPT style, large, centered */}
         <div className="flex items-end gap-2 px-3 py-3">
           <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => fileRef.current?.click()} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-black/60 dark:text-white/60" title="Attach files">
+            <button onClick={() => fileRef.current?.click()} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-orange-500/10 text-orange-600 dark:text-orange-400" title="Attach files">
               <Upload className="w-4 h-4" />
             </button>
-            <button onClick={() => setPrompt('Search the web for...')} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/10">
+            <button onClick={() => setPrompt('Search the web for...')} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 dark:text-orange-300 text-xs font-medium hover:bg-orange-500/20">
               <Search className="w-3.5 h-3.5" /> Search
             </button>
           </div>
@@ -168,31 +168,31 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
             className="flex-1 bg-transparent text-[15px] leading-relaxed placeholder:text-black/40 dark:placeholder:text-white/40 resize-none outline-none min-h-[24px] max-h-[140px] py-1.5"
           />
           <div className="flex items-center gap-1 shrink-0">
-            <button className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 text-black/40 dark:text-white/40" title="Voice" onClick={()=>toast('Voice input coming soon')}>
+            <button className="hidden sm:flex w-8 h-8 rounded-full items-center justify-center hover:bg-orange-500/10 text-orange-500/60 dark:text-orange-400/60" title="Voice" onClick={()=>toast('Voice input coming soon')}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
             </button>
             {isAiLoading ? (
-              <button onClick={cancelStream} className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center hover:opacity-90" title="Stop">
+              <button onClick={cancelStream} className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center hover:opacity-90 shadow-md" title="Stop">
                 <Square className="w-3.5 h-3.5" fill="currentColor" />
               </button>
             ) : (
-              <button onClick={handleSend} disabled={!text.trim()} className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center disabled:opacity-20 hover:opacity-90 transition-opacity">
+              <button onClick={handleSend} disabled={!text.trim()} className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center disabled:opacity-20 hover:opacity-90 transition-opacity shadow-md shadow-orange-500/20">
                 <ArrowUp className="w-4 h-4" strokeWidth={2} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Quick actions — ChatGPT style, minimal pills */}
+        {/* Quick actions — orange pills */}
         <div className="flex items-center gap-1.5 px-3 pb-3 overflow-x-auto scrollbar-hide">
-          <span className="text-[11px] text-black/30 dark:text-white/30 hidden sm:inline">Quick:</span>
-          <button onClick={() => setPrompt('Profile all columns in detail')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Profile</button>
-          <button onClick={() => setPrompt('Show me a chart')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Chart</button>
-          <button onClick={() => setPrompt('Find outliers')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Outliers</button>
+          <span className="text-[11px] text-orange-700/50 dark:text-orange-300/50 hidden sm:inline">Quick:</span>
+          <button onClick={() => setPrompt('Profile all columns in detail')} className="px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 dark:text-orange-300 text-xs hover:bg-orange-500/20 whitespace-nowrap">Profile</button>
+          <button onClick={() => setPrompt('Show me a chart')} className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs hover:bg-amber-500/20 whitespace-nowrap">Chart</button>
+          <button onClick={() => setPrompt('Find outliers')} className="px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 dark:text-orange-300 text-xs hover:bg-orange-500/20 whitespace-nowrap">Outliers</button>
           {isLoaded && (
             <>
-              <button onClick={() => setPrompt('Suggest and build the best ML model')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Model</button>
-              <button onClick={() => setPrompt('Clean this dataset')} className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs hover:bg-black/10 dark:hover:bg-white/10 whitespace-nowrap">Clean</button>
+              <button onClick={() => setPrompt('Suggest and build the best ML model')} className="px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 text-orange-700 dark:text-orange-300 text-xs hover:from-orange-500/20 hover:to-amber-500/20 whitespace-nowrap">Model</button>
+              <button onClick={() => setPrompt('Clean this dataset')} className="px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-700 dark:text-orange-300 text-xs hover:bg-orange-500/20 whitespace-nowrap">Clean</button>
             </>
           )}
         </div>

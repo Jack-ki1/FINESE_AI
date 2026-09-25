@@ -7,9 +7,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build
 dist
 dist-ssr
+*.tsbuildinfo
+
+# Testing & coverage
+coverage
+.nyc_output
+playwright-report
+test-results
+blob-report
+
+# Env
 *.local
 
 # Env — never commit real keys
@@ -26,6 +39,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+
+# Supabase
+.supabase
 
 # Pyodide vendored assets — built on CI via npm run vendor:pyodide
 public/pyodide/
+
+# Temporary
+.tmp
+tmp/

@@ -12,7 +12,7 @@
 
 ### **Machine Learning & Data Science**
 - **Real Model Training**: Naive Bayes (`train_classifier`) and bagged-tree ensemble (`random_forest`) with holdout accuracy, confusion matrix, permutation importance; OLS linear regression (`linear_regression`)
-- **Verified Analytics (16 tools)**: `describe_column`, `group_by_aggregate`, `correlation` (Pearson), `ttest` (Welch), `anova`, `outliers` (IQR/zscore), `filter_count`, `histogram`, `kmeans` (silhouette), `drift_check` (PSI+KS), `pca` (eigenvalues/loadings), `forecast` (Holt linear), `random_forest` (bagged CART), `semantic_metric` (derived-metric evaluation) — all server-computed and badge-verified (`● Verified · real compute`). In-browser SQL Lab also runs real DuckDB-WASM.
+- **Verified Analytics (17 tools)**: `describe_column`, `group_by_aggregate`, `correlation` (Pearson), `ttest` (Welch), `anova`, `outliers` (IQR/zscore), `filter_count`, `histogram`, `kmeans` (silhouette), `drift_check` (PSI+KS), `pca` (eigenvalues/loadings), `forecast` (Holt linear), `random_forest` (bagged CART), `semantic_metric` (derived-metric evaluation), `join_datasets` (inner/left on key) — all server-computed and badge-verified (`● Verified · real compute`, `● Verified · flagged` if small-n/p≈0.05). In-browser SQL Lab also runs real DuckDB-WASM with confidence `●/◐/○` strength.
 - **Semantic Layer**: Define metrics once (e.g. `profit = revenue - cost`) in **Settings → Metrics** — the model checks `metric_definitions` via `semantic_metric` before guessing what a column means.
 - **Estimated/Code Artifacts**: Pipeline/lineage/cost analysis/experiment designs are AI-generated scaffolds and shown as `⚠ Estimated · AI-generated` (not verified numbers) — run them in your infra
 
@@ -24,6 +24,10 @@
 ### **MLOps & Production Readiness**
 - **Drift & Monitoring**: Real `drift_check` (verified); alerting/deployment strategies as generated guidance (`Estimated`)
 - **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner; `forecast` is verified for time-series
+
+### **Homepage & Chat Experience**
+- **Homepage (`/`)** — public, colorful marketing landing (no auth): hero gradient (violet→cyan→amber blobs, mock chat card `West -14.2% p=0.003 r=-0.62`), trust bar `● Verified vs ◐ Estimated`, 6 feature cards, 4-step “How it works”, 16+1 tools grid, Architecture + Stack, use cases, testimonial + free-forever pitch. Explains the entire project at a glance.
+- **Chat (`/chat`)** — orange-themed (`from-orange-50 via-white to-amber-50`, `from-orange-500 to-amber-500` bubbles/buttons) — warm, energetic, distinct from homepage’s cool violet/cyan. Pure chat (WelcomeScreen is minimal logo only, no starter cards/sample pills; no wizards/evidence rail in chat per latest request). Message bubbles are orange gradient for user, white + orange border for assistant, pinned filter `bg-orange-500/10`.
 
 ### **Specialized Response Modes**
 The AI adapts its behavior based on context:
@@ -93,10 +97,12 @@ FINESE AI follows a clean separation between frontend and backend:
 | `dataset-ingest` | Validates size/row caps, stores dataset in Storage, builds column profile, caches in DB |
 | `dataset-fetch` | Authenticated, cacheable read proxy for stored datasets |
 | `dataset-profile` | Lightweight profile-only fetch (no row download) for session switching |
-| `compute-tools` | 16 verified tools: describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift, pca, forecast, random_forest, semantic_metric |
-| `FINESE-chat` | AI orchestration with tool-calling loop (6 rounds, history cap 30); streams responses via SSE |
-| `metrics` | Semantic-layer CRUD for `metric_definitions` (name→expression) — user_id-scoped, RLS |
-| `mcp` | MCP server for external agents — requires `MCP_API_KEY` or Supabase JWT + rate-limited |
+| `compute-tools` | 17 verified tools: describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift, pca, forecast, random_forest, semantic_metric, join_datasets |
+| `FINESE-chat` | AI orchestration with tool-calling loop (6 rounds, history cap 30); streams responses via SSE — injects `metric_definitions` + verifier pass |
+| `metrics` | Semantic-layer CRUD for `metric_definitions` (name→expression, unit) — user_id-scoped, RLS |
+| `sheets-import` | Google Sheets CSV import helper (client-side primary) |
+| `mcp` | MCP server — 18 tools (4 sample + 14 verified: all compute-tools behind same auth + `list_datasets`, `join_datasets`) — requires `MCP_API_KEY` or JWT + rate-limited |
+| `workspaces` | Workspace/membership tables + `datasets.workspace_id` + `metric_definitions.workspace_id` |
 
 **Security Rules:**
 - Every function requires a valid session token and verifies row ownership
@@ -152,13 +158,16 @@ FINESE AI follows a clean separation between frontend and backend:
    ```
 
 5. **Deploy edge functions**
-   ```bash
-   supabase functions deploy dataset-ingest
-   supabase functions deploy dataset-fetch
-   supabase functions deploy compute-tools
-   supabase functions deploy datum-chat
-   supabase functions deploy mcp
-   ```
+    ```bash
+    supabase functions deploy dataset-ingest
+    supabase functions deploy dataset-fetch
+    supabase functions deploy dataset-profile
+    supabase functions deploy compute-tools
+    supabase functions deploy FINESE-chat
+    supabase functions deploy metrics
+    supabase functions deploy mcp
+    supabase functions deploy sheets-import
+    ```
 
 6. **Start development server**
    ```bash
@@ -253,47 +262,44 @@ https://your-project.supabase.co/functions/v1/mcp
 ```
 FINESE_AI/
 ├── src/
-│   ├── components/           # React components
-│   │   ├── artifacts/        # Artifact renderers (ChartArtifact, TableArtifact, etc.)
-│   │   ├── chat/             # Chat UI (ChatWindow, MessageBubble, InputBar)
-│   │   ├── data-viewer/      # Data exploration (DataTable, DataVisuals, DataReport)
-│   │   ├── layout/           # AppShell, Sidebar, Topbar, ChangelogSidebar
-│   │   ├── ui/               # shadcn/ui component library
-│   │   └── python/           # Pyodide runner component
-│   ├── pages/                # Route components
-│   │   ├── Chat.tsx          # Main chat interface
-│   │   ├── DataViewer.tsx    # Data exploration tabs
-│   │   ├── Auth.tsx          # Authentication
-│   │   └── SamplePrompts.tsx # Prompt library browser
-│   ├── store/                # Zustand state management
-│   │   └── datum.store.ts    # Central application state
-│   ├── lib/                  # Client-side utilities
-│   │   ├── streaming.ts      # SSE chat streaming
-│   │   ├── ingest-client.ts  # Dataset upload client
-│   │   ├── artifact-parser.ts # Extract artifacts from AI responses
-│   │   ├── stats.ts          # Client-side statistics (fallback)
-│   │   └── constants.ts      # Runtime limits and config
-│   ├── workers/              # Web Workers
-│   │   ├── parse.worker.ts   # Off-thread file parsing
-│   │   └── pyodide.worker.ts # Python execution sandbox
-│   ├── hooks/                # Custom React hooks
-│   ├── types/                # TypeScript type definitions
-│   └── integrations/         # Auto-generated Supabase client
+│   ├── components/
+│   │   ├── artifacts/        # 20+ artifact renderers (Chart, Table, Stats, Hypothesis, etc.) + verifier/receipt
+│   │   ├── chat/             # ChatWindow (orange gradient), MessageBubble, InputBar, SecondOpinion
+│   │   ├── data-viewer/      # DataTable, DataVisuals, AutoEDA, DataCleaning, SqlLab, GoogleSheetsConnector
+│   │   ├── layout/           # AppShell, Sidebar, Topbar (TrustScore), ChangelogSidebar, CommandPalette (Cmd+K)
+│   │   ├── report/           # ReportExport (stamped HTML + receipts, used in DataViewer Export tab)
+│   │   └── ui/               # shadcn/ui + Radix
+│   ├── pages/
+│   │   ├── Index.tsx         # Colorful marketing homepage (public, explains entire project)
+│   │   ├── Chat.tsx          # Chat (protected, orange gradient)
+│   │   ├── DataViewer.tsx    # 7 tabs + Sheets + Export
+│   │   ├── Auth.tsx / Settings.tsx / SamplePrompts.tsx / Embed.tsx
+│   │   └── ...               # Admin, NotFound
+│   ├── store/                # Zustand: dataset.slice, chat.slice, session.slice, ui.slice, settings.store, metrics.store
+│   ├── lib/
+│   │   ├── api/              # streaming.ts, ingest-client.ts, compute-client.ts, sheets.ts
+│   │   ├── verifier.ts       # A1 heuristic (small-n, p≈0.05, Simpson)
+│   │   ├── receipt.ts        # A3 JSON/ipynb receipt builder
+│   │   ├── stats.ts / artifact-parser.ts / constants.ts
+│   │   └── ...
+│   ├── workers/              # parse.worker.ts, pyodide.worker.ts (vendors to public/pyodide)
+│   ├── hooks/                # useAuth (LOCAL_BYPASS), use-mobile, use-toast
+│   └── integrations/         # Supabase client
+├── shared/
+│   ├── stats/                # descriptive, correlation, semantic-types, profile
+│   ├── semantic/             # metric.ts (MetricDefinition, evalMetric)
+│   └── types/                # dataset, chat
 ├── supabase/
-│   ├── functions/            # Edge functions (Deno)
-│   │   ├── dataset-ingest/   # Upload, profile, cache datasets
-│   │   ├── compute-tools/    # Real statistical computation
-│   │   ├── datum-chat/       # AI orchestration with tool-calling
-│   │   ├── dataset-fetch/    # Authenticated dataset download
-│   │   └── mcp/              # MCP server for external agents
-│   ├── migrations/           # Database schema migrations
-│   └── config.toml           # Supabase configuration
-├── public/                   # Static assets
-├── ARCHITECTURE.md           # Detailed architecture docs
-├── package.json              # Dependencies and scripts
-├── vite.config.ts            # Vite build configuration
-├── tailwind.config.ts        # Tailwind CSS configuration
-└── tsconfig.json             # TypeScript configuration
+│   ├── functions/
+│   │   ├── dataset-ingest, dataset-fetch, dataset-profile
+│   │   ├── compute-tools/    # 17 tools (incl. join_datasets) — registry + _shared/stats
+│   │   ├── FINESE-chat/      # tool-defs, gateway, prompts (verifier injection)
+│   │   ├── metrics/, mcp/ (18 tools), sheets-import/
+│   │   └── _shared/          # auth, cors, rate-limit, schemas, stats
+│   └── migrations/           # 202605... + metric_definitions, workspaces, artifact_comments
+├── public/                   # benchmark_100x5.json + pyodide/ (vendored, gitignored)
+├── docs/ARCHITECTURE.md + docs/history/opencode_sum.md
+└── package.json / vite.config.ts / tailwind.config.ts (verified/estimated/critical tokens)
 ```
 
 ## 🔒 Security & Privacy
@@ -325,7 +331,7 @@ FINESE_AI/
 | Max rows | 250,000 | `src/lib/constants.ts` |
 | Max JSON payload | 25 MB | `supabase/functions/dataset-ingest/index.ts` |
 | Persisted sessions | 25 (LRU) | `src/store/datum.store.ts` |
-| Tool-call rounds | 4 max | `supabase/functions/datum-chat/index.ts` |
+| Tool-call rounds | 6 max | `supabase/functions/FINESE-chat/index.ts` |
 
 ### Environment Variables
 
@@ -425,7 +431,7 @@ Test configuration: `playwright.config.ts`
 **AI not responding**
 - Verify `AI_API_KEY` / `AI_GATEWAY_URL` / `AI_MODEL` are set
 - Check browser network tab for 402/429 (credits/rate limit) or 401 (bad key)
-- Review Supabase function logs: `supabase functions logs datum-chat`
+- Review Supabase function logs: `supabase functions logs FINESE-chat`
 
 **Charts not rendering**
 - Ensure data has numeric columns for the selected chart type
@@ -442,8 +448,9 @@ localStorage.setItem('debug', 'true');
 
 View Supabase function logs:
 ```bash
-supabase functions logs datum-chat --tail
+supabase functions logs FINESE-chat --tail
 supabase functions logs dataset-ingest --tail
+supabase functions logs compute-tools --tail
 ```
 
 ## 📚 Resources

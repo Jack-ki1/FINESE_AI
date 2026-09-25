@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { ExportButton } from '@/components/chat/ExportButton';
 import { ChatSearch } from '@/components/chat/ChatSearch';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { TrustScore } from '@/components/layout/TrustScore';
 
 export function Topbar() {
   const { fileName, isLoaded, dataset, profile, sidebarOpen, toggleSidebar, sessions, activeSessionId, changelogOpen, toggleChangelog } = useDatumStore();

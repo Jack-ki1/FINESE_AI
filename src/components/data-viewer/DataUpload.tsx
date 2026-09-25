@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Upload, FileSpreadsheet, Sparkles, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { parseFile } from '@/lib/parsers';
 import { useDatumStore } from '@/store/datum.store';
 import { MAX_FILE_BYTES, MAX_FILE_MB } from '@/lib/constants';

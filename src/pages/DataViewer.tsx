@@ -9,7 +9,7 @@ import { DataUpload } from '@/components/data-viewer/DataUpload';
 import { AutoEDA } from '@/components/data-viewer/AutoEDA';
 import { DataCleaning } from '@/components/data-viewer/DataCleaning';
 import { SqlLab } from '@/components/data-viewer/SqlLab';
-import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database } from 'lucide-react';
+import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database, FileSpreadsheet, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function DataViewer() {
@@ -66,6 +66,12 @@ export default function DataViewer() {
                 <TabsTrigger value="report" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <FileText className="w-3.5 h-3.5" /> Report
                 </TabsTrigger>
+                <TabsTrigger value="sheets" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Sheets
+                </TabsTrigger>
+                <TabsTrigger value="export" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <FileDown className="w-3.5 h-3.5" /> Export
+                </TabsTrigger>
                 <TabsTrigger value="upload" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <Upload className="w-3.5 h-3.5" /> Upload
                 </TabsTrigger>
@@ -88,6 +94,12 @@ export default function DataViewer() {
               </TabsContent>
               <TabsContent value="report">
                 <DataReport data={activeData} profile={profile!} fileName={fileName} />
+              </TabsContent>
+              <TabsContent value="sheets">
+                <GoogleSheetsConnector />
+              </TabsContent>
+              <TabsContent value="export">
+                <ReportExport />
               </TabsContent>
               <TabsContent value="upload">
                 <DataUpload />

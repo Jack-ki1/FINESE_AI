@@ -5,8 +5,12 @@ import { ChangelogSidebar } from './ChangelogSidebar';
 import { EvidenceRail } from './EvidenceRail';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDatumStore } from '@/store/datum.store';
+import { CommandPalette } from './CommandPalette';
+import { useState, useEffect } from 'react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const [cmdOpen, setCmdOpen] = useState(false);
+  useEffect(()=>{ const h=(e:KeyboardEvent)=>{ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); setCmdOpen(v=>!v); } }; window.addEventListener('keydown',h); return ()=>window.removeEventListener('keydown',h); },[]);
   const isMobile = useIsMobile();
   const { sidebarOpen, toggleSidebar, changelogOpen, toggleChangelog } = useDatumStore();
   const collapsed = useRef(false);
@@ -22,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background">
+      <CommandPalette open={cmdOpen} onClose={()=>setCmdOpen(false)} />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         <Topbar />

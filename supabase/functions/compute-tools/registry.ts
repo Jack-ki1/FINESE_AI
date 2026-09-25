@@ -14,6 +14,7 @@ import pca from "./tools/pca.ts";
 import forecast from "./tools/forecast.ts";
 import randomForest from "./tools/random-forest.ts";
 import semanticMetric from "./tools/semantic-metric.ts";
+import joinDatasets from "./tools/join-datasets.ts";
 
 export const TOOLS: Record<string, (args: any, data: any[]) => any> = {
   describe_column: describeColumn,
@@ -32,4 +33,5 @@ export const TOOLS: Record<string, (args: any, data: any[]) => any> = {
   forecast,
   random_forest: randomForest,
   semantic_metric: semanticMetric,
+  join_datasets: joinDatasets as any,
 };

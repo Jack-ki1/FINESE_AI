@@ -21,7 +21,11 @@ import { SchemaExplorerArtifact } from './SchemaExplorerArtifact';
 import { LineageArtifact } from './LineageArtifact';
 import { SuggestionsArtifact } from './SuggestionsArtifact';
 import { ArtifactFullscreen } from './ArtifactFullscreen';
-import { Copy, Download, Maximize2, Check } from 'lucide-react';
+import { Copy, Download, Maximize2, Check, ShieldAlert, Receipt } from 'lucide-react';
+import { verifyResult } from '@/lib/verifier';
+import { downloadReceipt, receiptToIpynb } from '@/lib/receipt';
+import { SecondOpinion } from '@/components/chat/SecondOpinion';
+import { useDatumStore } from '@/store/datum.store';
 import * as XLSX from 'xlsx';
 
 const typeLabels: Record<string, string> = {
@@ -154,15 +158,26 @@ function VerifiedBadge({ artifact }: { artifact: Artifact }) {
   const isVerified = raw.verified === true && !isOffline;
   const isEstimated = raw.verified === false || isOffline || (ESTIMATED_TYPES.has(artifact.type) && raw.verified !== true);
   const isToolBacked = (artifact as any).toolName || (artifact as any).toolArgs;
+  const flags = isVerified ? verifyResult(raw.toolName || raw.tool || artifact.type, raw.toolArgs || raw.args, raw) : [];
+  const flagged = flags.some(f=>f.level==="warn");
+  const conf = raw.confidence as { strength: string; reason: string } | undefined;
   if (!VERIFIED_TYPES.has(artifact.type) && !ESTIMATED_TYPES.has(artifact.type)) {
-    // Still show for offline preview artifacts even if type not in list
     if (!isOffline) return null;
   }
   if (isVerified) {
+    if (flagged) {
+      return (
+        <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-700 border-amber-500/30 uppercase tracking-wider" title={flags.map(f=>f.message).join("\n")}>
+          <ShieldAlert className="w-3 h-3"/> Verified · flagged — {flags[0]?.message}
+          {conf && <span className="opacity-70 normal-case">· {conf.strength} ({conf.reason})</span>}
+        </span>
+      );
+    }
     return (
-      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-verified/15 text-verified border-verified/30 uppercase tracking-wider animate-verified-in">
+      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-verified/15 text-verified border-verified/30 uppercase tracking-wider animate-verified-in" title={conf? `${conf.strength}: ${conf.reason}`: undefined}>
         ● Verified · real compute
         {isToolBacked && <span className="opacity-70 normal-case tracking-normal">· {String((artifact as any).toolName)}</span>}
+        {conf && <span className="opacity-70 normal-case">· {conf.strength==="high"?"●":conf.strength==="low"?"○":"◐"} {conf.strength}</span>}
       </span>
     );
   }
@@ -202,6 +217,7 @@ function ArtifactBody({ artifact }: { artifact: Artifact }) {
 }
 
 export function ArtifactRenderer({ artifact }: { artifact: Artifact }) {
+  const { fileHash, fileName } = useDatumStore() as any;
   const [copied, setCopied] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -232,9 +248,11 @@ export function ArtifactRenderer({ artifact }: { artifact: Artifact }) {
             <button onClick={() => setFullscreen(true)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="Expand">
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
+            <button onClick={()=>downloadReceipt(artifact, fileHash||"local", fileName||"dataset")} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" title="Receipt (JSON)"><Receipt className="w-3.5 h-3.5"/></button>
           </div>
         </div>
         <ArtifactBody artifact={artifact} />
+        {(artifact as any).verified===false && <div className="px-3 pb-3"><SecondOpinion prompt={`Second opinion: ${artifact.title||artifact.type} — ${JSON.stringify(artifact).slice(0,500)}`} /></div>}
       </div>
       {fullscreen && (
         <ArtifactFullscreen artifact={artifact} onClose={() => setFullscreen(false)}>

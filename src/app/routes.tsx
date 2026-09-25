@@ -12,6 +12,8 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const SamplePrompts = lazy(() => import("@/pages/SamplePrompts"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const Gallery = lazy(() => import("@/pages/Gallery"));
+const Embed = lazy(() => import("@/pages/Embed"));
 
 function Fallback() {
   return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
@@ -30,6 +32,8 @@ export function AppRoutes() {
         <Route path="/chat/:sessionId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/data/:view" element={<ProtectedRoute><DataViewer /></ProtectedRoute>} />
         <Route path="/prompts" element={<ProtectedRoute><SamplePrompts /></ProtectedRoute>} />
+        <Route path="/gallery" element={<Gallery />} />
+        <Route path="/embed" element={<Embed />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

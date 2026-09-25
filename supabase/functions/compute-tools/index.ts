@@ -36,10 +36,47 @@ Deno.serve(async (req) => {
     const { userId } = await requireUser(req);
     rateLimitOrThrow(req, userId, LIMITS.compute);
     const raw = await req.json();
-    const { tool, args, file_hash } = parseOrThrow(computeToolsSchema, raw) as { tool: string; args?: any; file_hash: string };
+    // join_datasets requires two hashes: file_hash (left) + args.right_file_hash
+    let { tool, args, file_hash } = parseOrThrow(computeToolsSchema, raw) as { tool: string; args?: any; file_hash: string };
     if (!TOOLS[tool]) return new Response(JSON.stringify({ error: "Unknown tool: " + tool }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const data = await loadDataset(file_hash, userId);
-    const result = TOOLS[tool](args || {}, data);
+    const tStart = Date.now();
+    let data: any[] = [];
+    let result: any;
+    if (tool === "join_datasets") {
+      const rightHash = (args as any)?.right_file_hash;
+      if (!rightHash) return new Response(JSON.stringify({ error: "join_datasets requires args.right_file_hash" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const [left, right] = await Promise.all([loadDataset(file_hash, userId), loadDataset(rightHash, userId)]);
+      result = TOOLS[tool]({ ...args, left, right }, []);
+    } else {
+      data = await loadDataset(file_hash, userId);
+      result = TOOLS[tool](args || {}, data);
+    }
+    const latency = Date.now() - tStart;
+    // F4 observability + F1 compute_jobs async write (fire-and-forget)
+    try {
+      const svc = supa();
+      svc.from("compute_jobs").insert({ user_id: userId, file_hash, job_type: tool, status: result?.error ? "error" : "done", params: args, result, error: result?.error || null }).then(() => {}, () => {});
+      svc.from("app_logs").insert({ user_id: userId, level: "info", message: `tool:${tool} latency:${latency}ms n:${Array.isArray(data)?data.length:0} verified:${!!result?.verified}` }).then(()=>{},()=>{});
+    } catch {}
+    // A2: attach confidence/reliability signal for ttest/correlation/anova etc
+    if (result && typeof result === 'object' && !result.error) {
+      const n = (result as any).n ?? (result as any).n_a ?? data.length;
+      const p = (result as any).p_value ?? (result as any).p ?? null;
+      let strength: 'high'|'medium'|'low' = 'medium';
+      let reason = '';
+      if (p !== null && typeof p === 'number') {
+        if (p < 0.01 && n >= 100) { strength='high'; reason='p<0.01, n≥100'; }
+        else if (p >= 0.04 && p <= 0.06) { strength='low'; reason='p near 0.05 threshold'; }
+        else if (n < 30) { strength='low'; reason=`n=${n} < 30 (small)`; }
+        else if (n < 100) { strength='medium'; reason=`n=${n}`; }
+        else { strength='high'; reason=`n=${n}, p=${p}`; }
+      } else if (typeof n === 'number') {
+        if (n < 30) { strength='low'; reason=`n=${n} small`; }
+        else if (n < 200) { strength='medium'; reason=`n=${n}`; }
+        else { strength='high'; reason=`n=${n} large`; }
+      }
+      (result as any).confidence = { strength, reason, n: typeof n==='number'?n:undefined, p_value: p };
+    }
     return new Response(JSON.stringify({ tool, result }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     if (e instanceof Response) {

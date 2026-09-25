@@ -106,6 +106,7 @@ export function ChartArtifact({ artifact }: { artifact: Artifact }) {
           )}
         </ResponsiveContainer>
       </div>
+      <details className="mx-3 mb-2 rounded border bg-muted/20 p-2"><summary className="text-[11px] font-mono cursor-pointer">Accessible table view + summary</summary><p className="text-xs mt-2" role="note" aria-label="Chart summary">{`Chart shows ${xCol} by ${yCol} (${aggFn}): ${chartData.length} groups, range ${Math.min(...chartData.map(d=>d.y))} to ${Math.max(...chartData.map(d=>d.y))}.`}</p><table className="w-full text-xs mt-2"><thead><tr><th className="text-left font-mono text-[10px]">{xCol}</th><th className="text-right font-mono text-[10px]">{yCol} ({aggFn})</th></tr></thead><tbody>{chartData.map((d,i)=><tr key={i} className="border-t"><td className="py-1">{d.x}</td><td className="py-1 text-right font-mono">{d.y}</td></tr>)}</tbody></table></details>
       <div className="px-3 pb-2 text-[10px] font-mono text-muted-foreground flex justify-between">
         <span>{xCol} → {yCol} ({aggFn}) • {chartData.length} groups • hover for values</span>
         <span className="text-primary">Interactive • click legend to customize</span>

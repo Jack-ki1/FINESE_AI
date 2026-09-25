@@ -25,7 +25,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/" element={<Index />} />
         <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />

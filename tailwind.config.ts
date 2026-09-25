@@ -40,6 +40,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        verified: { DEFAULT: "hsl(var(--verified))" },
+        estimated: { DEFAULT: "hsl(var(--estimated))" },
+        critical: { DEFAULT: "hsl(var(--critical))" },
+        ink: "hsl(var(--ink))",
+        surface: "hsl(var(--surface))",
+        "code-bg": "hsl(var(--code-bg))",
         datum: {
           surf: "hsl(var(--datum-surf))",
           raised: "hsl(var(--datum-raised))",

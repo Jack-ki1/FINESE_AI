@@ -11,18 +11,19 @@
 - **Multi-Dataset Support**: Upload and switch between multiple datasets within a single session (profile fetched without re-uploading full data)
 
 ### **Machine Learning & Data Science**
-- **Real Model Training**: Naive Bayes classifier (`train_classifier`) with holdout accuracy, confusion matrix, permutation importance; OLS linear regression (`linear_regression`)
-- **Verified Analytics (12 tools)**: `describe_column`, `group_by_aggregate`, `correlation` (Pearson), `ttest` (Welch), `anova`, `outliers` (IQR), `filter_count`, `histogram`, `kmeans` (silhouette), `drift_check` (PSI+KS) — all server-computed and badge-verified
-- **Estimated/Code Artifacts**: Pipeline/lineage/cost analysis/experiment designs are AI-generated scaffolds and shown as `Estimated` (not verified numbers) — run them in your infra
+- **Real Model Training**: Naive Bayes (`train_classifier`) and bagged-tree ensemble (`random_forest`) with holdout accuracy, confusion matrix, permutation importance; OLS linear regression (`linear_regression`)
+- **Verified Analytics (16 tools)**: `describe_column`, `group_by_aggregate`, `correlation` (Pearson), `ttest` (Welch), `anova`, `outliers` (IQR/zscore), `filter_count`, `histogram`, `kmeans` (silhouette), `drift_check` (PSI+KS), `pca` (eigenvalues/loadings), `forecast` (Holt linear), `random_forest` (bagged CART), `semantic_metric` (derived-metric evaluation) — all server-computed and badge-verified (`● Verified · real compute`). In-browser SQL Lab also runs real DuckDB-WASM.
+- **Semantic Layer**: Define metrics once (e.g. `profit = revenue - cost`) in **Settings → Metrics** — the model checks `metric_definitions` via `semantic_metric` before guessing what a column means.
+- **Estimated/Code Artifacts**: Pipeline/lineage/cost analysis/experiment designs are AI-generated scaffolds and shown as `⚠ Estimated · AI-generated` (not verified numbers) — run them in your infra
 
 ### **Data Engineering Capabilities**
-- **SQL Generation**: CTEs, window functions, optimization hints (generated code, `Estimated`)
+- **SQL Generation**: CTEs, window functions, optimization hints (generated code, `Estimated` — or real execution via **SQL Lab** + DuckDB-WASM in-browser)
 - **Pipeline & Schema**: ETL/ELT, dbt/Airflow scaffolds, schema lineage (generated, `Estimated`)
 - **Data Quality**: Profiling, validation rules, health scoring — backed by `describe_column`/`outliers` where possible
 
 ### **MLOps & Production Readiness**
 - **Drift & Monitoring**: Real `drift_check` (verified); alerting/deployment strategies as generated guidance (`Estimated`)
-- **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner
+- **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner; `forecast` is verified for time-series
 
 ### **Specialized Response Modes**
 The AI adapts its behavior based on context:
@@ -92,8 +93,9 @@ FINESE AI follows a clean separation between frontend and backend:
 | `dataset-ingest` | Validates size/row caps, stores dataset in Storage, builds column profile, caches in DB |
 | `dataset-fetch` | Authenticated, cacheable read proxy for stored datasets |
 | `dataset-profile` | Lightweight profile-only fetch (no row download) for session switching |
-| `compute-tools` | 12 verified tools: describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift |
+| `compute-tools` | 16 verified tools: describe, group-by, correlation, t-test, ANOVA, outliers, filter-count, histogram, classifier, regression, k-means, drift, pca, forecast, random_forest, semantic_metric |
 | `FINESE-chat` | AI orchestration with tool-calling loop (6 rounds, history cap 30); streams responses via SSE |
+| `metrics` | Semantic-layer CRUD for `metric_definitions` (name→expression) — user_id-scoped, RLS |
 | `mcp` | MCP server for external agents — requires `MCP_API_KEY` or Supabase JWT + rate-limited |
 
 **Security Rules:**
@@ -202,12 +204,7 @@ The AI response includes rich interactive artifacts:
 
 ### 4. Explore Sample Prompts
 
-Visit `/prompts` for 250+ curated prompts across:
-- **Data Analysis** (52 prompts): Profiling, correlations, distributions
-- **Data Science** (51 prompts): ML models, feature engineering, clustering
-- **Data Engineering** (51 prompts): Pipelines, SQL, dbt, Airflow
-- **MLOps** (51 prompts): Deployment, monitoring, drift detection
-- **Others** (51 prompts): Business analysis, presentations, strategy
+Visit `/prompts` for 200+ curated prompts across Data Analysis, Data Science, Data Engineering, and Business analysis — each prompt maps to either a verified tool (when numeric claims are needed) or an `Estimated` scaffolding artifact. No prompt fabricates numbers: verified artifacts are always badge-marked.
 
 ### 5. Use External Agents via MCP
 

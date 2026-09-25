@@ -24,7 +24,7 @@ export function Topbar() {
   })();
 
   return (
-    <header className="h-12 min-h-[48px] flex items-center justify-between px-3 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white dark:bg-[#212121] sticky top-0 z-10">
+    <header className="h-12 min-h-[48px] flex items-center justify-between px-3 sm:px-4 border-b border-border bg-background sticky top-0 z-10">
       <div className="flex items-center gap-2">
         <button onClick={toggleSidebar} aria-label="Toggle menu" className="p-1.5 rounded-lg text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 shrink-0">
           {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}

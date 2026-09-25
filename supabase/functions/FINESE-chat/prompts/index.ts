@@ -12,6 +12,9 @@ import { TOOL_USAGE_PROMPT } from "./tool-usage.ts";
 
 export function buildSystemPrompt(ctx: any): string {
   if (!ctx || !ctx.fileName) return PROMPT_NO_DATASET;
+  const metricsBlock = ctx?.metric_definitions?.length
+    ? `\n## User-Defined Metrics (check BEFORE guessing)\nThese are canonical. Use semantic_metric with the name before inventing a formula.\n` + ctx.metric_definitions.map((m: any) => `- **${m.name}** = \`${m.expression}\`${m.description ? ` — ${m.description}` : ''}`).join('\n')
+    : '';
   const { fileName, rowCount, colCount, healthScore, profile, correlations, advancedContext } = ctx;
   const sizeCategory = rowCount < 100 ? 'small' : rowCount < 1000 ? 'medium' : rowCount < 10000 ? 'large' : 'very_large';
   const profileStr = (profile || []).map((p: any) => {
@@ -32,5 +35,5 @@ export function buildSystemPrompt(ctx: any): string {
     advancedStr = parts.length ? `\n## Advanced Data Characteristics\n${parts.join('\n')}` : '';
   }
   const sizeInstructions = (SIZE_AWARE_RULES as any)[sizeCategory] || (SIZE_AWARE_RULES as any).medium;
-  return `${PERSONA}\n\n## Active Dataset\n- **File:** "${fileName}" | **${rowCount}** rows × **${colCount}** columns | **Health Score:** ${healthScore}% | **Size category:** ${sizeCategory}\n\n## Column Profiles\n${profileStr}\n\n## Correlations (|r| > 0.4)\n${corrStr}\n${advancedStr}\n\n${CHAIN_OF_THOUGHT}\n\n${RESPONSE_QUALITY}\n\n${SPECIALIZED_MODES}\n\n${ARTIFACT_INSTRUCTIONS}\n\n${MULTI_STEP_PATTERNS}\n\n${sizeInstructions}\n\n${CAPABILITIES}\n\n${RULES}\n\n${TOOL_USAGE_PROMPT}`;
+  return `${PERSONA}\n\n## Active Dataset\n- **File:** "${fileName}" | **${rowCount}** rows × **${colCount}** columns | **Health Score:** ${healthScore}% | **Size category:** ${sizeCategory}\n\n## Column Profiles\n${profileStr}\n\n## Correlations (|r| > 0.4)\n${corrStr}\n${advancedStr}${metricsBlock}\n\n${CHAIN_OF_THOUGHT}\n\n${RESPONSE_QUALITY}\n\n${SPECIALIZED_MODES}\n\n${ARTIFACT_INSTRUCTIONS}\n\n${MULTI_STEP_PATTERNS}\n\n${sizeInstructions}\n\n${CAPABILITIES}\n\n${RULES}\n\n${TOOL_USAGE_PROMPT}`;
 }

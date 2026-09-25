@@ -33,9 +33,14 @@ export const createChatSlice: StateCreator<any, [], [], ChatSlice> = (set, get) 
     const newMsgs = [...messages, userMsg];
     const ac = new AbortController();
     set({ messages: newMsgs, isAiLoading: true, abortController: ac, connectionStatus: 'connecting' });
+    let metric_definitions: any[] = [];
+    try {
+      const raw = localStorage.getItem('finese-metrics');
+      if (raw) { const parsed = JSON.parse(raw); metric_definitions = parsed.state?.metrics || parsed.metrics || []; }
+    } catch {}
     const datasetContext = fileHash ? {
       fileName, rowCount: get().dataset?.length || (get().sessions.find((s: any) => s.id === activeSessionId)?.rowCount || 0),
-      colCount: profile?.length || 0, healthScore, profile, correlations, advancedContext: advanced, sampleData: [],
+      colCount: profile?.length || 0, healthScore, profile, correlations, advancedContext: advanced, sampleData: [], metric_definitions,
     } : null;
     const MAX_HISTORY = 30;
     const historySlice = newMsgs.length > MAX_HISTORY ? newMsgs.slice(-MAX_HISTORY) : newMsgs;

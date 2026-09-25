@@ -10,6 +10,10 @@ import linearRegression from "./tools/linear-regression.ts";
 import kmeans from "./tools/kmeans.ts";
 import anova from "./tools/anova.ts";
 import driftCheck from "./tools/drift-check.ts";
+import pca from "./tools/pca.ts";
+import forecast from "./tools/forecast.ts";
+import randomForest from "./tools/random-forest.ts";
+import semanticMetric from "./tools/semantic-metric.ts";
 
 export const TOOLS: Record<string, (args: any, data: any[]) => any> = {
   describe_column: describeColumn,
@@ -24,4 +28,8 @@ export const TOOLS: Record<string, (args: any, data: any[]) => any> = {
   kmeans,
   anova,
   drift_check: driftCheck,
+  pca,
+  forecast,
+  random_forest: randomForest,
+  semantic_metric: semanticMetric,
 };

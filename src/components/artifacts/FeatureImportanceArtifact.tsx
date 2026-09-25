@@ -11,7 +11,7 @@ export function FeatureImportanceArtifact({ artifact }: { artifact: Artifact }) 
   return (
     <div className="p-3 space-y-1.5 max-h-[320px] overflow-auto">
       <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-mono uppercase tracking-wider mb-1 ${
-        verified ? 'bg-primary/10 text-primary border border-primary/30' : 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+        verified ? 'bg-verified/10 text-verified border border-verified/30' : 'bg-estimated/10 text-estimated border border-estimated/30'
       }`}>
         {verified
           ? <><ShieldCheck className="w-3 h-3" /> Verified · permutation importance</>

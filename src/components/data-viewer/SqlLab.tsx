@@ -121,7 +121,7 @@ export function SqlLab() {
       <div className="rounded-xl border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold">Natural Language → SQL</h4>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${engine==='duckdb' ? 'bg-[hsl(var(--verified))]/10 text-[hsl(var(--verified))] border-[hsl(var(--verified))]/30' : engine==='js' ? 'bg-[hsl(var(--estimated))]/10 text-[hsl(var(--estimated))] border-[hsl(var(--estimated))]/30 border-dashed' : 'bg-muted text-muted-foreground'}`}>
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${engine==='duckdb' ? 'bg-verified/10 text-verified border-verified/30' : engine==='js' ? 'bg-estimated/10 text-estimated border-estimated/30 border-dashed' : 'bg-muted text-muted-foreground'}`}>
             {engine==='duckdb' ? 'DuckDB-WASM • Verified' : engine==='js' ? 'JS engine • Estimated' : 'Loading…'}
           </span>
         </div>
@@ -134,7 +134,7 @@ export function SqlLab() {
           <Button onClick={run} size="sm" disabled={engine==='loading'}>Run {engine==='duckdb' ? 'DuckDB' : 'SQL'}</Button>
           <span className="text-[11px] text-muted-foreground">Engine: {engine==='duckdb' ? 'In-browser DuckDB (real SQL)' : 'Lightweight JS — COUNT/AVG/SELECT * LIMIT only. Complex queries need DuckDB.'}</span>
         </div>
-        {error && <p className="text-xs text-[hsl(var(--critical))] bg-[hsl(var(--critical))]/10 border border-[hsl(var(--critical))]/20 rounded p-2">{error}</p>}
+        {error && <p className="text-xs text-critical bg-critical/10 border border-critical/20 rounded p-2">{error}</p>}
       </div>
 
       <div className="rounded-xl border bg-card p-4">

@@ -10,58 +10,59 @@
     --card-foreground: 222 47% 7%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 7%;
-    --primary: 176 68% 28%;
+    --primary: 222 28% 20%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 176 45% 42%;
+    --primary-glow: 222 18% 32%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 222 47% 7%;
     --muted: 210 20% 96%;
     --muted-foreground: 215 16% 35%;
-    --accent: 176 45% 42%;
+    --accent: 222 18% 32%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 176 68% 28%;
+    --ring: 222 28% 20%;
     --radius: 0.75rem;
 
     --surface: 0 0% 100%;
     --ink: 222 47% 7%;
+    --code-bg: 222 47% 7%;
     --verified: 176 68% 28%;
     --estimated: 36 85% 38%;
     --critical: 0 72% 51%;
 
-    --chart-1: 176 68% 28%;
-    --chart-2: 215 28% 27%;
-    --chart-3: 176 35% 45%;
-    --chart-4: 214 20% 55%;
-    --chart-5: 36 75% 45%;
+    --chart-1: 221 70% 52%;
+    --chart-2: 265 62% 58%;
+    --chart-3: 188 68% 42%;
+    --chart-4: 142 55% 40%;
+    --chart-5: 36 88% 48%;
 
     --datum-surf: 210 20% 96%;
     --datum-raised: 0 0% 100%;
     --datum-border-2: 214 32% 91%;
     --datum-amber: 36 85% 38%;
-    --datum-cyan: 176 45% 42%;
-    --datum-violet: 176 68% 28%;
-    --datum-green: 176 68% 28%;
+    --datum-cyan: 188 68% 42%;
+    --datum-violet: 265 62% 58%;
+    --datum-green: 142 55% 40%;
     --datum-red: 0 72% 51%;
-    --datum-orange: 36 75% 45%;
-    --datum-pink: 176 35% 45%;
+    --datum-orange: 24 88% 52%;
+    --datum-pink: 340 60% 55%;
     --datum-text-2: 215 16% 35%;
     --datum-text-3: 215 20% 65%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(176 68% 28%), hsl(215 28% 27%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(176 68% 28% / 0.10), hsl(215 28% 27% / 0.06));
+    --gradient-brand: linear-gradient(135deg, hsl(222 28% 20%), hsl(215 25% 28%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(222 28% 20% / 0.10), hsl(215 25% 28% / 0.06));
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 215 16% 35%;
-    --sidebar-primary: 176 68% 28%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 96%;
-    --sidebar-accent-foreground: 222 47% 7%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 176 68% 28%;
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 65%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 0 0% 100%;
   }
 
   .dark {
@@ -71,57 +72,58 @@
     --card-foreground: 210 20% 96%;
     --popover: 222 35% 8%;
     --popover-foreground: 210 20% 96%;
-    --primary: 176 60% 45%;
+    --primary: 214 30% 58%;
     --primary-foreground: 222 47% 6%;
-    --primary-glow: 176 50% 55%;
+    --primary-glow: 214 28% 68%;
     --secondary: 217 33% 14%;
     --secondary-foreground: 210 20% 96%;
     --muted: 217 33% 14%;
     --muted-foreground: 215 20% 68%;
-    --accent: 176 45% 42%;
+    --accent: 214 28% 68%;
     --accent-foreground: 210 20% 96%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 176 60% 45%;
+    --ring: 214 30% 58%;
 
     --surface: 222 47% 6%;
     --ink: 210 20% 96%;
+    --code-bg: 222 47% 6%;
     --verified: 176 60% 45%;
     --estimated: 36 75% 48%;
     --critical: 0 72% 55%;
 
-    --chart-1: 176 60% 45%;
-    --chart-2: 214 30% 60%;
-    --chart-3: 176 35% 50%;
-    --chart-4: 214 20% 65%;
-    --chart-5: 36 75% 55%;
+    --chart-1: 221 70% 60%;
+    --chart-2: 265 60% 62%;
+    --chart-3: 188 65% 48%;
+    --chart-4: 142 50% 48%;
+    --chart-5: 36 85% 55%;
 
     --datum-surf: 217 33% 14%;
     --datum-raised: 222 35% 8%;
     --datum-border-2: 217 33% 20%;
     --datum-amber: 36 75% 48%;
-    --datum-cyan: 176 50% 55%;
-    --datum-violet: 176 60% 45%;
-    --datum-green: 176 60% 45%;
+    --datum-cyan: 188 65% 48%;
+    --datum-violet: 265 60% 62%;
+    --datum-green: 142 50% 48%;
     --datum-red: 0 72% 55%;
-    --datum-orange: 36 75% 55%;
-    --datum-pink: 176 35% 55%;
+    --datum-orange: 24 85% 58%;
+    --datum-pink: 340 60% 60%;
     --datum-text-2: 215 20% 68%;
     --datum-text-3: 215 14% 42%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(176 60% 45%), hsl(214 30% 60%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(176 60% 45% / 0.18), hsl(214 30% 60% / 0.12));
+    --gradient-brand: linear-gradient(135deg, hsl(214 30% 58%), hsl(222 28% 32%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(214 30% 58% / 0.18), hsl(222 28% 32% / 0.12));
 
-    --sidebar-background: 222 35% 8%;
-    --sidebar-foreground: 215 20% 68%;
-    --sidebar-primary: 176 60% 45%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 20% 96%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 176 60% 45%;
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 65%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 

@@ -33,6 +33,24 @@ export async function callComputeTool(tool: string, args: any, file_hash: string
       if (tool === 'histogram') {
         return { column: args.column, bins: [], _offlinePreview: true };
       }
+      if (tool === 'pca') {
+        // minimal local PCA preview: just return shape
+        const cols = args.columns || [];
+        return { verified: false, columns: cols, n: data.length, eigenvalues: cols.map(()=>1), explained_ratio: cols.map(()=>1/cols.length), _offlinePreview: true };
+      }
+      if (tool === 'forecast') {
+        const col = args.value_col || Object.keys(data[0]||{})[0];
+        const vals = data.map((r:any)=>Number(r[col])).filter((n:number)=>!isNaN(n));
+        const last = vals[vals.length-1] || 0;
+        return { verified: false, value_col: col, forecasts: Array(6).fill(last), _offlinePreview: true };
+      }
+      if (tool === 'random_forest' || tool === 'train_classifier') {
+        return { verified: false, accuracy: 0.7, labels: ['a','b'], confusion_matrix: [[5,2],[1,6]], _offlinePreview: true };
+      }
+      if (tool === 'semantic_metric') {
+        const expr = args.expression || args.metric_name || '';
+        return { verified: false, expression: expr, mean: 0, n: data.length, _offlinePreview: true };
+      }
       return { tool, args, note: 'offline preview — local compute, not server-verified', n: data.length, _offlinePreview: true };
     } catch { throw e; }
   }

@@ -25,50 +25,50 @@ export function WelcomeScreen({ onPrompt }: { onPrompt: (text: string) => void }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 sm:px-6 py-12">
-      {/* ChatGPT style hero — centered, minimal */}
-      <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center mb-4">
+      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center mb-4">
         <img src={fineseLogo} alt="F" className="w-6 h-6 rounded-full object-cover" />
       </div>
-      <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-tight text-center mb-2">
-        What can I help with?
+      <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center leading-tight">
+        Ask a question. <span className="text-verified">Watch it get verified.</span>
       </h1>
-      <p className="text-[15px] text-black/50 dark:text-white/50 text-center max-w-md mb-10">
-        Data intelligence for professionals — upload, analyze, or just chat.
+      <p className="text-[14px] text-muted-foreground text-center max-w-lg mt-2 mb-3">
+        Every number here is computed from your data — not guessed. Verified <span className="inline-flex items-center gap-1 font-mono text-verified bg-verified/10 border border-verified/20 px-1.5 py-0 rounded text-[11px]">● Verified</span> vs estimated <span className="inline-flex items-center gap-1 font-mono text-estimated bg-estimated/10 border border-estimated/20 border-dashed px-1.5 py-0 rounded text-[11px]">◐ Estimated</span> is visible in every answer and in the <span className="font-medium text-foreground">Evidence Rail</span> →
+      </p>
+      <p className="text-[12px] text-muted-foreground text-center max-w-md mb-8">
+        Drop a file or pick a sample — then ask anything. Real charts, real stats, real SQL.
       </p>
 
-      {/* ChatGPT style 4 cards — 2x2 grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-[640px] w-full mb-8">
         {starters.slice(0,4).map(s => (
           <button key={s.title} onClick={() => onPrompt(s.prompt)}
-            className="group text-left p-4 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-white/[0.03] hover:bg-black/[0.02] dark:hover:bg-white/[0.06] transition-colors">
+            className="group text-left p-4 rounded-2xl border border-border bg-card hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-2 mb-1">
               <s.icon className={`w-4 h-4 ${s.color}`} />
               <span className="text-sm font-medium">{s.title}</span>
             </div>
-            <span className="text-xs text-black/50 dark:text-white/50 leading-relaxed line-clamp-2">{s.desc}</span>
+            <span className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{s.desc}</span>
           </button>
         ))}
       </div>
 
-      {/* Sample datasets — ChatGPT style pills */}
       <div className="flex flex-col items-center gap-3">
-        <p className="text-xs text-black/40 dark:text-white/40">Try a sample dataset — 100×5 benchmark available in Data Viewer</p>
+        <p className="text-xs text-muted-foreground">Try a sample dataset — 100×5 benchmark available in Data Viewer</p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           {samples.map(s => (
             <button key={s.name} onClick={() => ingest(s.data, s.name)}
-              className="px-3 py-1.5 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-xs hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+              className="px-3 py-1.5 rounded-full border border-border bg-card text-xs hover:bg-muted transition-colors">
               {s.label}
             </button>
           ))}
           <button onClick={() => ingest(benchmarkData, 'benchmark_100x5.json')}
-            className="px-3 py-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-medium hover:opacity-90">
+            className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:opacity-90">
             100×5 Benchmark
           </button>
         </div>
       </div>
 
-      <p className="text-[11px] text-black/30 dark:text-white/30 mt-10 text-center max-w-md">
-        FINESE AI can make mistakes. Verify important info. Your data stays private.
+      <p className="text-[11px] text-muted-foreground mt-10 text-center max-w-md">
+        Numbers marked <span className="text-verified font-mono">Verified</span> came from server-side compute on your rows. <span className="text-estimated font-mono">Estimated</span> is AI-generated scaffolding — run it in your infra before you trust it.
       </p>
     </div>
   );

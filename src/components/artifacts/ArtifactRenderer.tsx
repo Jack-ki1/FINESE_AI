@@ -160,17 +160,17 @@ function VerifiedBadge({ artifact }: { artifact: Artifact }) {
   }
   if (isVerified) {
     return (
-      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-[hsl(var(--verified))]/15 text-[hsl(var(--verified))] border-[hsl(var(--verified))]/30 uppercase tracking-wider animate-verified-in">
+      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-verified/15 text-verified border-verified/30 uppercase tracking-wider animate-verified-in">
         ● Verified · real compute
         {isToolBacked && <span className="opacity-70 normal-case tracking-normal">· {String((artifact as any).toolName)}</span>}
       </span>
     );
   }
   if (isOffline) {
-    return <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border bg-[hsl(var(--estimated))]/10 text-[hsl(var(--estimated))] border-[hsl(var(--estimated))]/30 border-dashed uppercase tracking-wider">◐ Offline preview · local</span>;
+    return <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border bg-estimated/10 text-estimated border-estimated/30 border-dashed uppercase tracking-wider">◐ Offline preview · local</span>;
   }
   if (isEstimated || (!isVerified && VERIFIED_TYPES.has(artifact.type))) {
-    return <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border bg-[hsl(var(--estimated))]/10 text-[hsl(var(--estimated))] border-[hsl(var(--estimated))]/30 border-dashed uppercase tracking-wider">⚠ Estimated · AI-generated</span>;
+    return <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full border bg-estimated/10 text-estimated border-estimated/30 border-dashed uppercase tracking-wider">⚠ Estimated · AI-generated</span>;
   }
   return null;
 }

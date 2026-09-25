@@ -31,7 +31,7 @@ export default function Admin() {
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold font-display">Admin — FINESE AI</h1>
-          <span className="px-3 py-1 rounded-full text-xs font-mono bg-[hsl(var(--verified))]/15 text-[hsl(var(--verified))] border border-[hsl(var(--verified))]/20">
+          <span className="px-3 py-1 rounded-full text-xs font-mono bg-primary/10 text-primary border border-primary/20">
             LIVE • {user?.email || 'no session'}
           </span>
         </div>

@@ -45,6 +45,17 @@ serve(async (req) => {
       const { data: owned } = await svc.from("datasets").select("file_hash").eq("file_hash", file_hash).eq("user_id", userId).maybeSingle();
       if (!owned) return new Response(JSON.stringify({ error: "Dataset access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    // enrich with server-side metrics (merge with client-provided)
+    if (dataset_context?.metric_definitions === undefined) dataset_context = { ...(dataset_context || {}), metric_definitions: [] };
+    try {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.50.0");
+      const svc2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+      const { data: metrics } = await svc2.from("metric_definitions").select("name,expression,description").eq("user_id", userId).limit(20);
+      if (metrics?.length) {
+        const existing = new Set((dataset_context.metric_definitions || []).map((m: any) => m.name));
+        for (const m of metrics) if (!existing.has(m.name)) dataset_context.metric_definitions.push(m);
+      }
+    } catch {}
     const systemPrompt = buildSystemPrompt(dataset_context);
     const enableTools = !!file_hash;
     const convo: any[] = [{ role: "system", content: systemPrompt }, ...messages];

@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Settings, Cpu, Database, Palette, Shield, Zap } from 'lucide-react';
+import { Settings, Cpu, Database, Palette, Shield, Zap, Sigma } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
+import { useMetricsStore } from '@/store/metrics.store';
+import { useDatumStore } from '@/store/datum.store';
 
 const providers: { id: AIProvider; label: string; desc: string; free: boolean }[] = [
   { id: 'openrouter', label: 'OpenRouter', desc: '20+ free models, one key, 50/day free (1k with $10)', free: true },
@@ -50,6 +52,7 @@ export default function SettingsPage() {
           <Tabs defaultValue="ai" className="w-full">
             <TabsList className="bg-muted/50 border rounded-xl p-1 flex flex-wrap">
               <TabsTrigger value="ai" className="gap-2"><Cpu className="w-3.5 h-3.5"/> AI</TabsTrigger>
+              <TabsTrigger value="metrics" className="gap-2"><Sigma className="w-3.5 h-3.5"/> Metrics</TabsTrigger>
               <TabsTrigger value="general" className="gap-2"><Settings className="w-3.5 h-3.5"/> General</TabsTrigger>
               <TabsTrigger value="data" className="gap-2"><Database className="w-3.5 h-3.5"/> Data</TabsTrigger>
               <TabsTrigger value="appearance" className="gap-2"><Palette className="w-3.5 h-3.5"/> Appearance</TabsTrigger>
@@ -142,6 +145,10 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="metrics" className="space-y-4 mt-6">
+              <MetricsPanel />
+            </TabsContent>
+
             <TabsContent value="general" className="space-y-4 mt-6">
               <Card>
                 <CardHeader><CardTitle className="text-sm">General</CardTitle></CardHeader>
@@ -202,5 +209,44 @@ export default function SettingsPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function MetricsPanel() {
+  const { metrics, add, remove } = useMetricsStore();
+  const { profile, dataset } = useDatumStore();
+  const cols = profile?.map(p => p.col) || Object.keys(dataset?.[0] || {});
+  const [name, setName] = useState(''); const [expr, setExpr] = useState(''); const [desc, setDesc] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const handleAdd = () => {
+    const e = add({ name: name.trim(), expression: expr.trim(), description: desc.trim() || undefined });
+    if (e) setErr(e); else { setErr(null); setName(''); setExpr(''); setDesc(''); toast.success(`Metric "${name}" saved`); }
+  };
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Sigma className="w-4 h-4 text-primary"/> Semantic Layer — Metrics</CardTitle>
+        <CardDescription className="text-xs">Define once, reuse everywhere. The model will call <code>semantic_metric</code> with your metric instead of guessing column meanings.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {cols.length > 0 && <p className="text-xs text-muted-foreground">Available columns: <span className="font-mono">{cols.join(', ')}</span></p>}
+        <div className="grid md:grid-cols-3 gap-3">
+          <div><Label className="text-xs">Metric name</Label><Input value={name} onChange={e=>setName(e.target.value)} placeholder="profit" className="h-8 font-mono text-xs"/></div>
+          <div className="md:col-span-2"><Label className="text-xs">Expression (column arithmetic)</Label><Input value={expr} onChange={e=>setExpr(e.target.value)} placeholder="revenue - cost" className="h-8 font-mono text-xs"/></div>
+        </div>
+        <div><Label className="text-xs">Description (optional)</Label><Input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Gross profit per row" className="h-8 text-xs"/></div>
+        {err && <p className="text-xs text-critical">{err}</p>}
+        <Button size="sm" onClick={handleAdd} disabled={!name || !expr}>Add metric</Button>
+        <div className="space-y-2 pt-2">
+          {metrics.length===0 ? <p className="text-xs text-muted-foreground">No metrics yet. Define one so the model stops guessing — e.g. <code>profit = revenue - cost</code>.</p> :
+            metrics.map(m=>(
+              <div key={m.name} className="flex items-center gap-2 p-2 rounded border bg-muted/30">
+                <div className="flex-1 min-w-0"><p className="text-xs font-mono font-medium truncate">{m.name} = {m.expression}</p>{m.description && <p className="text-[11px] text-muted-foreground truncate">{m.description}</p>}</div>
+                <Button size="sm" variant="ghost" onClick={()=>remove(m.name)} className="h-7 text-xs">Remove</Button>
+              </div>
+            ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground border-t pt-3">Honesty note: metrics are evaluated row-wise with a safe arithmetic evaluator (no code exec). Persisted to <code>finese-metrics</code> in localStorage (and <code>metric_definitions</code> in Supabase when signed in).</p>
+      </CardContent>
+    </Card>
   );
 }

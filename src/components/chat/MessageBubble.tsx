@@ -38,7 +38,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
   return (
     <div className={`group flex gap-3 px-4 sm:px-6 py-5 ${isPinned ? 'bg-black/[0.02] dark:bg-white/[0.02] border-l-2 border-black/10 dark:border-white/10' : ''} ${isUser ? 'bg-black/[0.02] dark:bg-white/[0.02]' : 'bg-transparent'}`}>
       {/* Avatar — ChatGPT style */}
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isUser ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-[#2f2f2f] border border-black/5 dark:border-white/10'}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isUser ? 'bg-primary text-primary-foreground' : 'bg-card border border-border'}`}>
         {isUser ? <span className="text-[11px] font-medium">U</span> : <img src={fineseLogo} alt="F" className="w-7 h-7 rounded-full object-cover" />}
       </div>
 
@@ -55,7 +55,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
             </div>
           ) : (
             <div className="flex flex-col items-end gap-2">
-              <div className="px-4 py-2.5 rounded-2xl bg-[#f4f4f4] dark:bg-[#2f2f2f] text-[15px] leading-relaxed max-w-[85%] ml-auto">
+              <div className="px-4 py-2.5 rounded-2xl bg-secondary text-secondary-foreground text-[15px] leading-relaxed max-w-[85%] ml-auto">
                 {message.content}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -75,7 +75,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
                 components={{
                   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
                   code: ({ children }) => <code className="font-mono text-[13px] bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">{children}</code>,
-                  pre: ({ children }) => <pre className="bg-[#0d0d0d] dark:bg-black text-white p-3 rounded-xl overflow-auto text-xs my-3">{children}</pre>,
+                  pre: ({ children }) => <pre className="bg-code-bg text-white p-3 rounded-xl overflow-auto text-xs my-3">{children}</pre>,
                   p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
                   ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
                   ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,

@@ -21,9 +21,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [isMobile, sidebarOpen, changelogOpen, toggleSidebar, toggleChangelog]);
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-white dark:bg-[#212121]">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#212121]">
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
         <Topbar />
         <div className="flex-1 flex overflow-hidden min-w-0">
           <main className="flex-1 min-w-0 overflow-y-auto bg-background flex flex-col items-center">

@@ -16,7 +16,11 @@ Available VERIFIED tools (numbers are real, mark artifact verified:true):
 - linear_regression(x_col, y_col) — OLS slope/intercept/R²/r/p-value. Call for any regression/trend claim.
 - kmeans(columns, k?) — K-Means clustering, returns centroids, sizes, silhouette. Call for any clustering claim.
 - anova(value_col, group_col) — one-way ANOVA F and p-value. Call for group mean comparison.
-- drift_check(columns?) — PSI+KS drift between first/second half, returns drift_score/status. Call for any drift_report.
+ - drift_check(columns?) — PSI+KS drift between first/second half, returns drift_score/status. Call for any drift_report.
+ - pca(columns, n_components?) — PCA: eigenvalues, explained_ratio, loadings. Call for any dimensionality-reduction / variance-explained claim.
+ - forecast(value_col, date_col?, periods?) — Holt linear forecast. Call for any forward-looking prediction on a series.
+ - random_forest(target_col, feature_cols?, n_trees?, max_depth?) — bagged CART ensemble (real holdout accuracy, confusion matrix, permutation importance). Prefer over train_classifier when user wants an ensemble or a comparison.
+ - semantic_metric(metric_name?, expression?, description?) — evaluate a user-defined metric (e.g. revenue - cost). Check this BEFORE guessing what a column means: if the user defined 'profit', call semantic_metric with metric_name='profit'.
 
 After calling tools, weave their actual results into your narrative and artifacts.
 If a number came from a tool, that number is real and trustworthy — set "verified": true.

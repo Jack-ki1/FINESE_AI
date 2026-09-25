@@ -81,7 +81,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none opacity-60">
         <div className="absolute top-[-10%] left-[-10%] w-[42rem] h-[42rem] rounded-full bg-primary/15 blur-3xl" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[36rem] h-[36rem] rounded-full bg-[hsl(var(--verified))]/12 blur-3xl" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[36rem] h-[36rem] rounded-full bg-primary/8 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">

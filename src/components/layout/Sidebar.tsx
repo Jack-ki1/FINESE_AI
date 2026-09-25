@@ -39,7 +39,7 @@ export function Sidebar() {
         <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={toggleSidebar} />
       )}
       <aside
-        className={`w-[260px] min-w-[260px] flex flex-col bg-[#171717] text-white overflow-hidden ${
+        className={`w-[260px] min-w-[260px] flex flex-col bg-sidebar text-sidebar-foreground overflow-hidden ${
           isMobile ? 'fixed inset-y-0 left-0 z-50 h-[100dvh] shadow-2xl' : 'h-[100dvh]'
         }`}
       >

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type AIProvider = 'openrouter' | 'groq' | 'huggingface' | 'ollama' | 'openai' | 'anthropic' | 'google' | 'cerebras' | 'mistral' | 'cloudflare' | 'nvidia' | 'together' | 'cohere' | 'custom';
+export type AIProvider = 'openrouter' | 'groq' | 'huggingface' | 'ollama' | 'openai' | 'anthropic' | 'google' | 'cerebras' | 'mistral' | 'cloudflare' | 'nvidia' | 'together' | 'cohere' | 'github' | 'sambanova' | 'custom';
 
 export interface FreeModel {
   id: string;
@@ -113,6 +113,15 @@ export const FREE_MODELS: Record<AIProvider, FreeModel[]> = {
     { id: 'command-a-03-2025', name: 'Command A', provider: 'Cohere', context: '256K', cost: 'Free trial', bestFor: 'Agentic, 256K' },
     { id: 'embed-english-v3.0', name: 'Embed English v3', provider: 'Cohere', context: '512', cost: 'Free trial', bestFor: 'Embeddings' },
   ],
+  github: [
+    { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'GitHub Models', context: '128K', cost: 'Free w/ GitHub acct', bestFor: 'Lowest friction — existing account' },
+    { id: 'meta/Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B', provider: 'GitHub Models', context: '128K', cost: 'Free w/ GitHub acct', bestFor: 'Rate-limited, flagship' },
+    { id: 'microsoft/Phi-4', name: 'Phi-4', provider: 'GitHub Models', context: '16K', cost: 'Free w/ GitHub acct', bestFor: 'Reasoning, 14B' },
+  ],
+  sambanova: [
+    { id: 'Meta-Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B', provider: 'SambaNova', context: '131K', cost: 'Free tier', bestFor: 'Fast Llama inference' },
+    { id: 'Qwen3-32B', name: 'Qwen3 32B', provider: 'SambaNova', context: '32K', cost: 'Free tier', bestFor: 'Coding' },
+  ],
   custom: [],
 };
 
@@ -130,6 +139,8 @@ export const PROVIDER_DETAILS: Record<AIProvider, { baseUrl: string; docs: strin
   nvidia: { baseUrl: 'https://integrate.api.nvidia.com/v1', docs: 'https://docs.api.nvidia.com/nim', keyUrl: 'https://build.nvidia.com/', howTo: ['Sign up at build.nvidia.com', 'Generate API key — 1K req/mo free'], limits: 'Up to 40 RPM, 1K req/mo free', notes: 'NIM — hosts llama, gemma, deepseek, kimi etc. Fast.' },
   together: { baseUrl: 'https://api.together.xyz/v1', docs: 'https://docs.together.ai', keyUrl: 'https://api.together.ai/settings/api-keys', howTo: ['Sign up at together.ai', 'Add $5 minimum (paid)'], limits: 'Paid — $5 min, good for 200+ models', notes: 'Not free, but cheap Turbo. Included for completeness.' },
   cohere: { baseUrl: 'https://api.cohere.com/v2', docs: 'https://docs.cohere.com/docs', keyUrl: 'https://dashboard.cohere.com/api-keys', howTo: ['Sign up at cohere.com', 'Get trial key — $5 credit'], limits: 'Trial $5 credit, then paid', notes: 'RAG-specialized (Command R+).' },
+  github: { baseUrl: 'https://models.github.ai/inference', docs: 'https://docs.github.com/github-models', keyUrl: 'https://github.com/settings/tokens', howTo: ['You already have a GitHub account — lowest friction', 'Create a fine-grained PAT with Models permission', 'Rate-limited free access to hosted models'], limits: 'Free rate limits per GitHub account; terms change — watched by catalog health (§3.6)', notes: 'Zero new signup for most of our audience. OpenAI-compatible /inference endpoint.' },
+  sambanova: { baseUrl: 'https://api.sambanova.ai/v1', docs: 'https://docs.sambanova.ai', keyUrl: 'https://cloud.sambanova.ai/', howTo: ['Sign up at cloud.sambanova.ai', 'Create an API key', 'Pick a Llama/Qwen model'], limits: 'Free tier for fast Llama inference; terms change — watched by catalog health (§3.6)', notes: 'Same fast+free niche as Groq/Cerebras. Verify current terms before relying on it.' },
   custom: { baseUrl: '', docs: '', keyUrl: '', howTo: ['Enter any OpenAI-compatible baseUrl', 'Add apiKey if needed', 'Set model id exactly'], limits: 'Depends on provider', notes: 'For self-hosted, LocalAI, vLLM, LiteLLM, etc.' },
 };
 
@@ -142,6 +153,11 @@ export interface AISettings {
   maxTokens: number;
   topP: number;
   useFree: boolean;
+  /** Answer framing (§4.3) — same verified number, different English. */
+  tone: 'analyst' | 'executive' | 'plain';
+  /** User-supplied keys per free provider (§3.2) — multiplies free quota; the
+   *  chain round-robins across every configured key. Stored locally only. */
+  extraKeys: Record<string, string>;
 }
 
 export interface GeneralSettings {
@@ -179,6 +195,8 @@ const defaultAI: AISettings = {
   maxTokens: 2048,
   topP: 1,
   useFree: true,
+  tone: 'analyst',
+  extraKeys: {},
 };
 
 export const ACCENT_PRESETS: { id: string; label: string; hsl: string; hex: string }[] = [
@@ -229,7 +247,7 @@ export const useSettingsStore = create<SettingsState>()(
         const start = Date.now();
         try {
           // free tier simulation for providers that are generously free (no key needed to validate UI)
-          const freeSimProviders: AIProvider[] = ['openrouter','groq','cerebras','mistral','cloudflare','nvidia','google','cohere'];
+          const freeSimProviders: AIProvider[] = ['openrouter','groq','cerebras','mistral','cloudflare','nvidia','google','cohere','github','sambanova'];
           if (ai.useFree && freeSimProviders.includes(ai.provider)) {
             await new Promise(r => setTimeout(r, 300));
             return { ok: true, latency: Date.now() - start };
@@ -253,6 +271,13 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'finese-settings',
+      version: 2,
+      migrate: (persisted: any) => {
+        // v0/v1 → v2: backfill fields added by the free-model + tone passes.
+        if (persisted?.ai && typeof persisted.ai.extraKeys !== 'object') persisted.ai.extraKeys = {};
+        if (persisted?.ai && !persisted.ai.tone) persisted.ai.tone = 'analyst';
+        return persisted;
+      },
       partialize: (s) => ({ ai: s.ai, general: s.general, data: s.data }),
       onRehydrateStorage: () => (state) => {
         if (state?.general?.accent) setTimeout(()=>applyAccent(state.general.accent), 0);

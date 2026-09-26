@@ -10,6 +10,7 @@ import { Settings, Cpu, Database, Palette, Shield, Zap, Sigma } from 'lucide-rea
 import { AppShell } from '@/components/layout/AppShell';
 import { useMetricsStore } from '@/store/metrics.store';
 import { useDatumStore } from '@/store/datum.store';
+import { checkOllama, OLLAMA_INSTALL } from '@/lib/ollama';
 
 const providers: { id: AIProvider; label: string; desc: string; free: boolean }[] = [
   { id: 'openrouter', label: 'OpenRouter', desc: '15+ :free models, 1 key, 20 RPM 50/d → 1k/d', free: true },
@@ -22,6 +23,8 @@ const providers: { id: AIProvider; label: string; desc: string; free: boolean }[
   { id: 'cloudflare', label: 'Cloudflare', desc: '10k neurons/d free, edge', free: true },
   { id: 'nvidia', label: 'NVIDIA NIM', desc: '40 RPM, 1K req/mo free, 1M ctx', free: true },
   { id: 'cohere', label: 'Cohere', desc: 'Trial $5, Command R+ 128K', free: true },
+  { id: 'github', label: 'GitHub Models', desc: 'Free w/ GitHub acct, zero new signup', free: true },
+  { id: 'sambanova', label: 'SambaNova', desc: 'Fast Llama free tier', free: true },
   { id: 'together', label: 'Together', desc: 'Paid $5 min, 200+ models', free: false },
   { id: 'openai', label: 'OpenAI', desc: 'Paid, gpt-4o / o1', free: false },
   { id: 'anthropic', label: 'Anthropic', desc: 'Paid, Claude 3.5', free: false },
@@ -165,6 +168,9 @@ export default function SettingsPage() {
                     <div><Label className="text-xs">Top P {ai.topP}</Label><input type="range" min={0} max={1} step={0.05} value={ai.topP} onChange={e=>setAI({topP: parseFloat(e.target.value)})} className="w-full" /></div>
                   </div>
 
+                  <FreeQuotaCard />
+                  <OllamaSetupCard />
+
                   <div className="flex gap-2">
                     <Button size="sm" onClick={handleTest} disabled={testing}>{testing ? 'Testing…' : 'Test Connection'}</Button>
                     <Button size="sm" variant="outline" onClick={()=>resetAI()}>Reset to free default</Button>
@@ -196,8 +202,18 @@ export default function SettingsPage() {
                     <input type="checkbox" checked={general.autoSave} onChange={e=>setGeneral({autoSave:e.target.checked})} />
                   </div>
                   <div>
-                    <Label className="text-xs">Language</Label>
-                    <select value={general.language} onChange={e=>setGeneral({language:e.target.value})} className="mt-1 h-8 w-full border rounded px-2 text-sm bg-background"><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option></select>
+                    <Label className="text-xs">Language — chat answers reply in this language</Label>
+                    <select value={general.language} onChange={e=>setGeneral({language:e.target.value})} className="mt-1 h-8 w-full border rounded px-2 text-sm bg-background">
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                      <option value="es">Español</option>
+                      <option value="de">Deutsch</option>
+                      <option value="zh">中文</option>
+                      <option value="ja">日本語</option>
+                      <option value="ar">العربية</option>
+                      <option value="hi">हिन्दी</option>
+                      <option value="pt">Português</option>
+                    </select>
                   </div>
                 </CardContent>
               </Card>
@@ -269,8 +285,100 @@ export default function SettingsPage() {
   );
 }
 
-function MetricsPanel() {
-  const { metrics, add, remove } = useMetricsStore();
+function FreeQuotaCard() {
+  const { ai, setAI } = useSettingsStore();
+  const keys = ai.extraKeys || {};
+  const slots = [
+    { id: 'groq', label: 'Groq', hint: 'console.groq.com/keys — no card' },
+    { id: 'cerebras', label: 'Cerebras', hint: 'cloud.cerebras.ai — free tier' },
+    { id: 'openrouter', label: 'OpenRouter', hint: 'openrouter.ai/keys — no card' },
+    { id: 'google', label: 'Google AI Studio', hint: 'aistudio.google.com — no card' },
+  ];
+  const filled = slots.filter((s) => (keys[s.id] || '').trim()).length;
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">Multiply your free quota — {filled}/4 keys</h4>
+        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-verified/10 text-verified border border-verified/20">$0.00 · auto-failover</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Add free keys from two or three providers and the chain round-robins across all of them — triple the daily quota, routing
+        handled for you. Keys stay in <code>finese-settings</code> locally and are only sent as Bearer to their own provider.
+      </p>
+      <div className="grid md:grid-cols-2 gap-3">
+        {slots.map((s) => (
+          <div key={s.id} className="space-y-1">
+            <Label className="text-xs">{s.label} key</Label>
+            <Input
+              type="password"
+              value={keys[s.id] || ''}
+              onChange={(e) => setAI({ extraKeys: { ...keys, [s.id]: e.target.value } })}
+              placeholder={s.hint}
+              className="h-8 text-xs font-mono"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OllamaSetupCard() {
+  const { ai, setAI } = useSettingsStore();
+  const [status, setStatus] = useState<{ running: boolean; models: string[]; error?: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const check = async () => {
+    setChecking(true);
+    setStatus(await checkOllama(ai.baseUrl || 'http://localhost:11434'));
+    setChecking(false);
+  };
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">Run fully local — Ollama (zero cost, private)</h4>
+        {status && (
+          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${status.running ? 'bg-verified/10 text-verified border-verified/20' : 'bg-critical/10 text-critical border-critical/20'}`}>
+            {status.running ? `running · ${status.models.length} model${status.models.length === 1 ? '' : 's'}` : 'not detected'}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        No account, no key, data never leaves your machine. Detect Ollama on this device, or follow the one-line setup for your OS.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={check} disabled={checking}>{checking ? 'Checking…' : 'Detect Ollama on this machine'}</Button>
+        <Button size="sm" variant="ghost" onClick={() => setAI({ provider: 'ollama', model: 'llama3.2', useFree: true })}>Use Ollama</Button>
+      </div>
+      {status && !status.running && <OllamaInstallSteps />}
+      {status?.running && status.models.length > 0 && (
+        <p className="text-[11px] font-mono text-muted-foreground">Installed: {status.models.join(', ')}</p>
+      )}
+    </div>
+  );
+}
+
+function OllamaInstallSteps() {
+  const [os, setOs] = useState('Linux');
+  const [copied, setCopied] = useState(false);
+  const cmd = OLLAMA_INSTALL.find((o) => o.os === os)?.command || '';
+  return (
+    <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+      <div className="flex gap-2">
+        {['macOS', 'Linux', 'Windows'].map((o) => (
+          <button key={o} onClick={() => setOs(o)} className={`text-[11px] px-2 py-1 rounded-full border ${os === o ? 'border-primary bg-primary/5' : 'border-border'}`}>{o}</button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 text-[11px] font-mono bg-code-bg text-white rounded-lg px-3 py-2 overflow-auto">{cmd}</code>
+        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
+          {copied ? 'Copied' : 'Copy'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MetricsPanel() {  const { metrics, add, remove } = useMetricsStore();
   const { profile, dataset } = useDatumStore();
   const cols = profile?.map(p => p.col) || Object.keys(dataset?.[0] || {});
   const [name, setName] = useState(''); const [expr, setExpr] = useState(''); const [desc, setDesc] = useState('');

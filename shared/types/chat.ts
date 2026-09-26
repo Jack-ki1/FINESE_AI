@@ -23,6 +23,9 @@ export interface ChatMessage {
   content: string;
   artifacts?: Artifact[];
   timestamp: string;
+  /** Free-model chain: which provider actually answered (§3.1 badge). */
+  provider?: string;
+  model?: string;
 }
 
 export interface Session {

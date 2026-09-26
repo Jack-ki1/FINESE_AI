@@ -144,8 +144,8 @@ export function Sidebar() {
               {(user?.email || 'F').slice(0,1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.email || 'finese_admin@gmail.com'}</p>
-              <p className="text-[11px] text-sidebar-foreground/60">Free • Open Mode</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.email || 'Not signed in'}</p>
+              <p className="text-[11px] text-sidebar-foreground/60">Free plan</p>
             </div>
             <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground">
               <LogOut className="w-4 h-4" />

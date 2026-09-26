@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSettingsStore } from "@/store/settings.store";
 import { RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 export function SecondOpinion({ prompt, onResult }: { prompt: string; onResult?: (text:string)=>void }) {
   const [loading, setLoading]=useState(false);
   const [result, setResult]=useState<string|null>(null);
@@ -13,7 +14,7 @@ export function SecondOpinion({ prompt, onResult }: { prompt: string; onResult?:
       const alt = ai.provider==="openrouter" ? "groq" : "openrouter";
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/FINESE-chat`, {
         method: "POST",
-        headers: { "Content-Type":"application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${(await (await import("@/integrations/supabase/client")).supabase.auth.getSession()).data.session?.access_token}` },
+        headers: { "Content-Type":"application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
         body: JSON.stringify({ messages:[{role:"user",content:prompt}], dataset_context:null, ai_config:{ provider: alt, model: "" } })
       });
       const text = await resp.text();

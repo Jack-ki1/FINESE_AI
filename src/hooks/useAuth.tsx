@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { loadLocalSession, clearLocalSession } from '@/lib/localAuth';
+import { clearLocalSession, purgeLegacyLocalAuth, loadLocalOwner, clearLocalOwner } from '@/lib/localAuth';
+import { isLocalMode } from '@/lib/localMode';
 
 interface AuthCtx {
   session: Session | null;
@@ -9,21 +10,30 @@ interface AuthCtx {
   loading: boolean;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  /** True when VITE_LOCAL_MODE=true: single-user local operation, no cloud. */
+  isLocalMode: boolean;
 }
 
-const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {}, isAdmin: false });
+const Ctx = createContext<AuthCtx>({ session: null, user: null, loading: true, signOut: async () => {}, isAdmin: false, isLocalMode: false });
 
 function checkIsAdmin(user: User | null): boolean {
   if (!user) return false;
   const meta = (user.user_metadata as any) || {};
   const appMeta = (user.app_metadata as any) || {};
   if (meta.is_admin === true || appMeta.is_admin === true) return true;
+  // Single-user local mode: the explicit local owner administers their own
+  // machine. Gated on the flag — never true on a hosted deployment unless
+  // someone deliberately turns local mode on there (don't).
+  if (isLocalMode() && meta.is_local_owner === true) return true;
   // Optional allow-list via env (comma-separated)
   const allow = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((s:string)=>s.trim().toLowerCase()).filter(Boolean);
   if (allow.length && user.email && allow.includes(user.email.toLowerCase())) return true;
   return false;
 }
 
+// DEV-only escape hatch for local UI work. Compiled out of prod builds
+// entirely via import.meta.env.DEV — never rely on it in preview/prod, and
+// never authenticate a real user through it.
 const LOCAL_BYPASS = import.meta.env.DEV && import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
 function createLocalSession(): any {
   const now = Math.floor(Date.now()/1000);
@@ -47,6 +57,7 @@ function createLocalSession(): any {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const localMode = isLocalMode();
   const [session, setSession] = useState<Session | null>(() => {
     if (LOCAL_BYPASS) {
       try {
@@ -57,54 +68,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return s as any;
       } catch { return createLocalSession() as any; }
     }
-    // Try local stored session (signup/login fallback) before supabase
-    const local = loadLocalSession();
-    if (local) return local as Session;
+    if (localMode) {
+      // Explicit single-user mode: restore the owner's own session if they
+      // previously clicked "Continue locally". Nothing is seeded.
+      purgeLegacyLocalAuth();
+      return (loadLocalOwner() as Session) || null;
+    }
+    // Supabase-only: never seed a session from localStorage. Legacy
+    // local/backdoor keys are purged so a previously-planted fake session
+    // cannot persist across the fix.
+    purgeLegacyLocalAuth();
     return null;
   });
   const [loading, setLoading] = useState(() => {
     if (LOCAL_BYPASS) return false;
-    const local = loadLocalSession();
-    if (local) return false;
+    if (localMode) return false;
     return true;
   });
 
   useEffect(() => {
     if (LOCAL_BYPASS) return;
-    // If we already have a local session, don't override it with null supabase session
-    const local = loadLocalSession();
+    if (localMode) return; // no cloud calls at all in local mode
+    purgeLegacyLocalAuth();
     let cancelled = false;
     const timeout = setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, 3000);
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
       if (cancelled) return;
-      if (s) {
-        setSession(s);
-      } else {
-        // keep local session if exists, otherwise null
-        const ls = loadLocalSession();
-        if (ls) setSession(ls as Session);
-        else setSession(null);
-      }
+      // Trust only Supabase-issued sessions. Never fall back to localStorage.
+      setSession(s);
       setLoading(false);
       clearTimeout(timeout);
     });
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
-      if (data.session) setSession(data.session);
-      else {
-        const ls = loadLocalSession();
-        if (ls) setSession(ls as Session);
-        else setSession(null);
-      }
+      setSession(data.session);
       setLoading(false);
       clearTimeout(timeout);
     }).catch(() => {
       if (!cancelled) {
-        const ls = loadLocalSession();
-        if (ls) setSession(ls as Session);
-        else setLoading(false);
+        setLoading(false);
         clearTimeout(timeout);
       }
     });
@@ -113,27 +117,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [localMode]);
 
   const signOut = async () => {
     if (LOCAL_BYPASS) {
       try { localStorage.removeItem('finese_local_session'); } catch {}
       clearLocalSession();
+      purgeLegacyLocalAuth();
       try { localStorage.removeItem('finese-ai-store'); } catch {}
+      window.location.href = '/auth';
+      return;
+    }
+    if (localMode) {
+      clearLocalOwner();
       window.location.href = '/auth';
       return;
     }
     try { await supabase.auth.signOut(); } catch {}
     clearLocalSession();
+    purgeLegacyLocalAuth();
     try { localStorage.removeItem('finese_local_session'); } catch {}
-    // don't wipe finese-ai-store entirely to preserve other users? but clear session part
     window.location.href = '/auth';
   };
 
   const user = session?.user ?? null;
 
+  // Local-mode sessions can also be established from the Auth page after
+  // mount (the "Continue locally" click writes directly to localStorage).
+  // Pick it up without a reload.
+  useEffect(() => {
+    if (!localMode || session) return;
+    const owner = loadLocalOwner();
+    if (owner) setSession(owner as Session);
+  }, [localMode, session]);
+
   return (
-    <Ctx.Provider value={{ session, user, loading, signOut, isAdmin: checkIsAdmin(user) }}>
+    <Ctx.Provider value={{ session, user, loading, signOut, isAdmin: checkIsAdmin(user), isLocalMode: localMode }}>
       {children}
     </Ctx.Provider>
   );

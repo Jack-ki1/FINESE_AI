@@ -12,8 +12,7 @@ import { TOOL_USAGE_PROMPT } from "./tool-usage.ts";
 
 export function buildSystemPrompt(ctx: any): string {
   if (!ctx || !ctx.fileName) return PROMPT_NO_DATASET;
-  const metricsBlock = ctx?.metric_definitions?.length
-    ? `\n## User-Defined Metrics (check BEFORE guessing)\nThese are canonical. Use semantic_metric with the name before inventing a formula.\n` + ctx.metric_definitions.map((m: any) => `- **${m.name}** = \`${m.expression}\`${m.description ? ` — ${m.description}` : ''}`).join('\n')
+  const metricsBlock = ctx?.metric_definitions?.length    ? `\n## User-Defined Metrics (check BEFORE guessing)\nThese are canonical. Use semantic_metric with the name before inventing a formula.\n` + ctx.metric_definitions.map((m: any) => `- **${m.name}** = \`${m.expression}\`${m.description ? ` — ${m.description}` : ''}`).join('\n')
     : '';
   const { fileName, rowCount, colCount, healthScore, profile, correlations, advancedContext } = ctx;
   const sizeCategory = rowCount < 100 ? 'small' : rowCount < 1000 ? 'medium' : rowCount < 10000 ? 'large' : 'very_large';
@@ -35,5 +34,22 @@ export function buildSystemPrompt(ctx: any): string {
     advancedStr = parts.length ? `\n## Advanced Data Characteristics\n${parts.join('\n')}` : '';
   }
   const sizeInstructions = (SIZE_AWARE_RULES as any)[sizeCategory] || (SIZE_AWARE_RULES as any).medium;
-  return `${PERSONA}\n\n## Active Dataset\n- **File:** "${fileName}" | **${rowCount}** rows × **${colCount}** columns | **Health Score:** ${healthScore}% | **Size category:** ${sizeCategory}\n\n## Column Profiles\n${profileStr}\n\n## Correlations (|r| > 0.4)\n${corrStr}\n${advancedStr}${metricsBlock}\n\n${CHAIN_OF_THOUGHT}\n\n${RESPONSE_QUALITY}\n\n${SPECIALIZED_MODES}\n\n${ARTIFACT_INSTRUCTIONS}\n\n${MULTI_STEP_PATTERNS}\n\n${sizeInstructions}\n\n${CAPABILITIES}\n\n${RULES}\n\n${TOOL_USAGE_PROMPT}`;
+  // §4.3 audience tone — same verified number, different English.
+  const toneBlock =
+    ctx?.tone === "executive"
+      ? "\n## Audience: board-level executives\nFrame every answer for a non-technical executive: lead with the decision, then one sentence of evidence. No jargon; translate every p-value and confidence interval into plain English."
+      : ctx?.tone === "plain"
+        ? "\n## Audience: plain language\nExplain like to a smart non-analyst: short sentences, everyday words, define any technical term inline."
+        : "";
+  // §4.5 multilingual — Gemma/Qwen/GLM-class models in the catalog handle
+  // this natively; the verified numbers stay identical, only the prose changes.
+  const langNames: Record<string, string> = {
+    fr: "French", es: "Spanish", de: "German", zh: "Simplified Chinese",
+    ja: "Japanese", ar: "Arabic", hi: "Hindi", pt: "Portuguese",
+  };
+  const lang = typeof ctx?.language === "string" ? ctx.language : "en";
+  const langBlock = lang !== "en" && langNames[lang]
+    ? `\n## Response language\nRespond entirely in ${langNames[lang]} (numbers, code, and tool arguments stay as-is).`
+    : "";
+  return `${PERSONA}\n\n## Active Dataset\n- **File:** "${fileName}" | **${rowCount}** rows × **${colCount}** columns | **Health Score:** ${healthScore}% | **Size category:** ${sizeCategory}\n\n## Column Profiles\n${profileStr}\n\n## Correlations (|r| > 0.4)\n${corrStr}\n${advancedStr}${metricsBlock}${toneBlock}${langBlock}\n\n${CHAIN_OF_THOUGHT}\n\n${RESPONSE_QUALITY}\n\n${SPECIALIZED_MODES}\n\n${ARTIFACT_INSTRUCTIONS}\n\n${MULTI_STEP_PATTERNS}\n\n${sizeInstructions}\n\n${CAPABILITIES}\n\n${RULES}\n\n${TOOL_USAGE_PROMPT}`;
 }

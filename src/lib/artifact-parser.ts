@@ -1,4 +1,5 @@
 import type { Artifact } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export function parseArtifacts(rawText: string): { cleanText: string; artifacts: Artifact[]; errors?: string[] } {
   const artifacts: Artifact[] = [];
@@ -30,14 +31,12 @@ export function parseArtifacts(rawText: string): { cleanText: string; artifacts:
             // Use fetch via supabase if available, else console
             console.warn('[artifact-parser] malformed artifact:', raw.slice(0, 300));
             // Async log to app_logs table (best effort)
-            import('@/integrations/supabase/client').then(({ supabase }) => {
-              supabase.from('app_logs').insert({
-                level: 'warn',
-                source: 'artifact-parser',
-                message: 'Failed to parse artifact JSON',
-                context: { raw: raw.slice(0, 2000), error: String(e2) } as any,
-              }).then(() => {}, () => {});
-            }).catch(() => {});
+            supabase.from('app_logs').insert({
+              level: 'warn',
+              source: 'artifact-parser',
+              message: 'Failed to parse artifact JSON',
+              context: { raw: raw.slice(0, 2000), error: String(e2) } as any,
+            }).then(() => {}, () => {});
             void payload;
           }
         } catch {}

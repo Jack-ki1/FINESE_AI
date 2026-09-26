@@ -10,14 +10,17 @@ import { AutoEDA } from '@/components/data-viewer/AutoEDA';
 import { DataCleaning } from '@/components/data-viewer/DataCleaning';
 import { SqlLab } from '@/components/data-viewer/SqlLab';
 import { GoogleSheetsConnector } from '@/components/data-viewer/GoogleSheetsConnector';
+import { DatasetHealth } from '@/components/data-viewer/DatasetHealth';
+import { WatchManager } from '@/components/data-viewer/WatchManager';
+import { WebTableGrab } from '@/components/data-viewer/WebTableGrab';
 import { ReportExport } from '@/components/report/ReportExport';
-import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database, FileSpreadsheet, FileDown } from 'lucide-react';
+import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database, FileSpreadsheet, FileDown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function DataViewer() {
   const { view } = useParams<{ view: string }>();
   const navigate = useNavigate();
-  const { dataset, transformedDataset, profile, fileName, isLoaded } = useDatumStore();
+  const { dataset, transformedDataset, profile, fileName, fileHash, isLoaded } = useDatumStore();
 
   const isTransformed = view === 'transformed';
   const activeData = isTransformed ? (transformedDataset || dataset) : dataset;
@@ -48,6 +51,9 @@ export default function DataViewer() {
               <DataUpload />
             </div>
           ) : (
+            <>
+            {profile && <DatasetHealth profile={profile} data={activeData} fileName={fileName} />}
+            {profile && fileHash && <WatchManager fileHash={fileHash} fileName={fileName} rows={activeData} profile={profile} />}
             <Tabs defaultValue="table" className="w-full">
               <TabsList className="bg-muted/50 border border-border rounded-xl p-1 mb-6 flex flex-wrap">
                 <TabsTrigger value="table" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
@@ -70,6 +76,9 @@ export default function DataViewer() {
                 </TabsTrigger>
                 <TabsTrigger value="sheets" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <FileSpreadsheet className="w-3.5 h-3.5" /> Sheets
+                </TabsTrigger>
+                <TabsTrigger value="web" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                  <Globe className="w-3.5 h-3.5" /> Web table
                 </TabsTrigger>
                 <TabsTrigger value="export" className="gap-2 text-xs rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <FileDown className="w-3.5 h-3.5" /> Export
@@ -100,6 +109,9 @@ export default function DataViewer() {
               <TabsContent value="sheets">
                 <GoogleSheetsConnector />
               </TabsContent>
+              <TabsContent value="web">
+                <WebTableGrab />
+              </TabsContent>
               <TabsContent value="export">
                 <ReportExport />
               </TabsContent>
@@ -107,6 +119,7 @@ export default function DataViewer() {
                 <DataUpload />
               </TabsContent>
             </Tabs>
+            </>
           )}
         </div>
       </div>

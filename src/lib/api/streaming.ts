@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isLocalMode } from '@/lib/localMode';
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/FINESE-chat`;
 
@@ -12,6 +13,7 @@ interface StreamChatParams {
   onDone: () => void;
   onError: (error: string, status?: number) => void;
   onEvidence?: (calls: { tool: string; args: any; result?: any }[]) => void;
+  onMeta?: (meta: { provider?: string; model?: string; failoverFrom?: string }) => void;
 }
 
 function isOfflinePreviewMode(): boolean {
@@ -20,14 +22,21 @@ function isOfflinePreviewMode(): boolean {
   return (import.meta as any).env?.VITE_OFFLINE_PREVIEW !== 'false';
 }
 
-export async function streamChat({ messages, datasetContext, fileHash, signal, onConnect, onDelta, onDone, onError }: StreamChatParams) {
+export async function streamChat({ messages, datasetContext, fileHash, signal, onConnect, onDelta, onDone, onError, onMeta }: StreamChatParams) {
+  const localMode = isLocalMode();
   let token: string | null = null;
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    token = session?.access_token || null;
-  } catch {}
-  if (!token) {
+  if (!localMode) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      token = session?.access_token || null;
+    } catch {}
+  }
+  if (!token && !localMode) {
     onError('You are signed out. Please sign in again.');
+    return;
+  }
+  if (localMode && !datasetContext) {
+    onError('Local mode: load a dataset first (Data → Upload), or point Settings → AI at Ollama for free chat.');
     return;
   }
 
@@ -39,11 +48,22 @@ export async function streamChat({ messages, datasetContext, fileHash, signal, o
       if (parsed.state?.ai) aiConfig = parsed.state.ai;
     }
   } catch {}
+  // §3.2 round-robin: rotate the chain start index per message so multi-key
+  // users spread load across providers instead of always starting on Groq.
+  try {
+    const offset = Number(localStorage.getItem('finese-chain-offset') || '0') || 0;
+    aiConfig = { ...(aiConfig || {}), chainOffset: offset };
+    localStorage.setItem('finese-chain-offset', String(offset + 1));
+  } catch {}
 
   let resp: Response | null = null;
   let fetchError: string | null = null;
-  try {
-    resp = await fetch(CHAT_URL, {
+  if (localMode) {
+    // No backend exists — go straight to the local computation path below.
+    fetchError = 'local mode — no backend';
+  } else {
+    try {
+      resp = await fetch(CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,9 +78,10 @@ export async function streamChat({ messages, datasetContext, fileHash, signal, o
         ai_config: aiConfig,
       }),
     });
-  } catch (e:any) {
-    fetchError = e?.message || 'Network error';
-    resp = null;
+    } catch (e:any) {
+      fetchError = e?.message || 'Network error';
+      resp = null;
+    }
   }
 
   if (!resp || !resp.ok) {
@@ -103,6 +124,15 @@ export async function streamChat({ messages, datasetContext, fileHash, signal, o
     onError('No response stream');
     return;
   }
+
+  // §3.1: which free provider actually answered (failover chain headers).
+  try {
+    onMeta?.({
+      provider: resp.headers.get('X-Free-Provider') || undefined,
+      model: resp.headers.get('X-Free-Model') || undefined,
+      failoverFrom: resp.headers.get('X-Failover-From') || undefined,
+    });
+  } catch {}
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();

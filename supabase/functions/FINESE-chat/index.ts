@@ -3,6 +3,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { TOOL_DEFS } from "./tool-defs.ts";
 import { getAIConfig, callChatCompletions, runTool } from "./gateway.ts";
+import { callWithFreeFailover } from "./free-model-chain.ts";
 import { buildSystemPrompt } from "./prompts/index.ts";
 import { chatRequestSchema, parseOrThrow } from "../_shared/schemas.ts";
 import { rateLimitOrThrow, LIMITS } from "../_shared/rate-limit.ts";
@@ -26,6 +27,25 @@ function validateToolArgs(name: string, args: any): string | null {
   const required = (def.function.parameters as any).required || [];
   for (const r of required) if (args[r] === undefined || args[r] === null || args[r] === "") return `Missing required arg "${r}" for ${name}`;
   return null;
+}
+
+// Auto mode = "just let FINESE handle it": no user-supplied key and no custom
+// base URL. Uses the cross-provider free failover chain (server or user
+// extra keys) instead of pinning one provider. Explicit keys stay single-path.
+function isAutoMode(ai_config: any): boolean {
+  if (!ai_config) return true;
+  if (ai_config.baseUrl || ai_config.provider === "custom") return false;
+  if (typeof ai_config.apiKey === "string" && ai_config.apiKey.trim()) return false;
+  return true;
+}
+
+function chainBody(messages: any[], ai_config: any, tools?: any[], stream = false): Record<string, unknown> {
+  const body: Record<string, unknown> = { messages, stream };
+  if (tools) { (body as any).tools = tools; (body as any).tool_choice = "auto"; }
+  if (ai_config?.temperature !== undefined) (body as any).temperature = ai_config.temperature;
+  if (ai_config?.topP !== undefined) (body as any).top_p = ai_config.topP;
+  if (ai_config?.maxTokens !== undefined) (body as any).max_tokens = ai_config.maxTokens;
+  return body;
 }
 
 serve(async (req) => {
@@ -60,10 +80,26 @@ serve(async (req) => {
     const enableTools = !!file_hash;
     const convo: any[] = [{ role: "system", content: systemPrompt }, ...messages];
     const { PRIMARY_MODEL: pm, FALLBACK_MODELS: fm } = getAIConfig(ai_config);
+    const auto = isAutoMode(ai_config);
+    // Round-robin start across the chain (§3.2): the client rotates
+    // chainOffset per message so multi-key users spread load instead of
+    // always starting on Groq.
+    const chainOffset = Number((ai_config as any)?.chainOffset) || 0;
+    const extraKeys = (ai_config as any)?.extraKeys && typeof (ai_config as any).extraKeys === "object" ? (ai_config as any).extraKeys : undefined;
+    let usedProvider = ""; let usedModel = ""; let failedFrom: string[] = [];
+    async function callModel(model: string, msgs: any[], tools?: any[], stream = false): Promise<Response> {
+      if (!auto) return callChatCompletions(model, msgs, tools, stream, ai_config);
+      const { response, usedProvider: up, usedModel: um, failedAttempts } = await callWithFreeFailover(
+        chainBody(msgs, ai_config, tools, stream), { extraKeys, startIndex: chainOffset },
+      );
+      usedProvider = up; usedModel = um;
+      failedFrom = failedAttempts.map((f) => f.provider);
+      return response;
+    }
     let truncatedRounds = false;
     if (enableTools) {
       for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-        const toolResp = await callChatCompletions(pm, convo, TOOL_DEFS as any, false, ai_config);
+        const toolResp = await callModel(pm, convo, TOOL_DEFS as any, false);
         if (!toolResp.ok) {
           if (toolResp.status === 429 || toolResp.status === 402) return new Response(JSON.stringify({ error: toolResp.status === 429 ? "Rate limited — try again shortly." : "AI credits exhausted." }), { status: toolResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
           break;
@@ -90,6 +126,10 @@ serve(async (req) => {
       }
     }
     async function tryStream(modelList: string[]): Promise<Response> {
+      if (auto) {
+        // Chain already spans providers — one call covers the model list.
+        return callModel(modelList[0] || pm, convo, undefined, true);
+      }
       let lastError: Response | null = null;
       for (const model of modelList) {
         const response = await callChatCompletions(model, convo, undefined, true, ai_config);
@@ -108,10 +148,14 @@ serve(async (req) => {
       const t = await response.text(); console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI service error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    const outHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "text/event-stream" };
+    // Tell the client which free provider actually answered (§3.1 badge).
+    if (usedProvider) outHeaders["X-Free-Provider"] = usedProvider;
+    if (usedModel) outHeaders["X-Free-Model"] = usedModel;
+    if (failedFrom.length) outHeaders["X-Failover-From"] = failedFrom.join(",");
+    return new Response(response.body, { headers: outHeaders });
   } catch (e) {
-    if (e instanceof Response) {
-      const body = await e.text().catch(() => "");
+    if (e instanceof Response) {      const body = await e.text().catch(() => "");
       const ct = e.headers.get("Content-Type") || "application/json";
       return new Response(body || JSON.stringify({ error: "Unauthorized" }), { status: e.status, headers: { ...getCorsHeaders(req), "Content-Type": ct } });
     }
@@ -119,6 +163,9 @@ serve(async (req) => {
     const msg = (e as Error)?.message || "";
     if (msg.includes("custom base URL") || msg.includes("Invalid custom")) {
       return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
+    }
+    if (msg.includes("free provider") || msg.includes("All free providers exhausted")) {
+      return new Response(JSON.stringify({ error: msg }), { status: 503, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     return new Response(JSON.stringify({ error: "Chat service failed. Please try again." }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }

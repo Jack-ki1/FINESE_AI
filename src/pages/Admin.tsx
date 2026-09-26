@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDatasets } from '@/hooks/useDatasets';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export default function Admin() {
   const { user } = useAuth();
+  useDocumentHead('Admin — FINESE AI', 'Admin dashboard: datasets, logs, and system stats.');
+  const { data: datasets, isLoading: datasetsLoading, error: datasetsError } = useDatasets(5);
   const [logs, setLogs] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const { data: ds } = await supabase.from('datasets').select('file_hash,file_name,row_count,user_id').limit(5);
-        if (!cancelled) setStats({ datasets: ds });
-      } catch {}
       try {
         const { data: lg } = await supabase.from('app_logs').select('*').order('created_at',{ascending:false}).limit(20);
         if (!cancelled) setLogs(lg || []);
@@ -48,7 +47,11 @@ export default function Admin() {
           <Card>
             <CardHeader><CardTitle className="text-sm">System Stats</CardTitle></CardHeader>
             <CardContent className="text-sm font-mono whitespace-pre-wrap">
-              {loading ? 'Loading…' : JSON.stringify(stats, null, 2)}
+              {datasetsLoading || loading
+                ? 'Loading…'
+                : datasetsError
+                  ? `Failed to load datasets: ${(datasetsError as Error).message}`
+                  : JSON.stringify({ datasets }, null, 2)}
             </CardContent>
           </Card>
         </div>

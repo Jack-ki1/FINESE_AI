@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isLocalMode } from "@/lib/localMode";
 
 export interface IngestResponse {
   file_hash: string;
@@ -42,6 +43,9 @@ export async function ingestDataset(
   fileName: string,
   opts: IngestOptions = {}
 ): Promise<IngestResponse> {
+  // Local mode: no backend exists — profile in-browser, persist to
+  // localStorage. Same code path as the offline fallback, minus the wait.
+  if (isLocalMode()) return localIngest(rows, fileName);
   const fileExt = fileName.split(".").pop()?.toLowerCase() || "csv";
   const body = JSON.stringify({ rows, file_name: fileName, file_ext: fileExt });
   const { data: sess } = await supabase.auth.getSession();
@@ -93,6 +97,11 @@ export async function ingestDataset(
 }
 
 export async function loadDatasetRows(file_hash: string): Promise<any[]> {
+  if (isLocalMode()) {
+    const local = localStorage.getItem(`finese-dataset-${file_hash}`);
+    if (local) return JSON.parse(local);
+    throw new Error("Dataset not found in local storage — upload it again.");
+  }
   if (isOfflinePreviewEnabled()) {
     try {
       const local = localStorage.getItem(`finese-dataset-${file_hash}`);
@@ -116,6 +125,11 @@ export async function loadDatasetRows(file_hash: string): Promise<any[]> {
 }
 
 export async function loadDatasetProfile(file_hash: string): Promise<IngestResponse> {
+  if (isLocalMode()) {
+    const local = localStorage.getItem(`finese-dataset-${file_hash}-profile`);
+    if (local) return JSON.parse(local);
+    throw new Error("Dataset profile not found locally — upload it again.");
+  }
   const { data, error } = await supabase.functions.invoke("dataset-fetch", {
     body: { file_hash, profile_only: true },
   });

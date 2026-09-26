@@ -15,6 +15,11 @@ function providerBaseUrl(provider?: string): string {
     case 'google': return 'https://generativelanguage.googleapis.com/v1beta/openai';
     case 'anthropic': return 'https://api.anthropic.com/v1';
     case 'openai': return 'https://api.openai.com/v1';
+    case 'cerebras': return 'https://api.cerebras.ai/v1';
+    case 'nvidia': return 'https://integrate.api.nvidia.com/v1';
+    case 'mistral': return 'https://api.mistral.ai/v1';
+    case 'github': return 'https://models.github.ai/inference';
+    case 'sambanova': return 'https://api.sambanova.ai/v1';
     default: return ENV_GATEWAY;
   }
 }

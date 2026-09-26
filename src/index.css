@@ -319,3 +319,17 @@
     hsl(var(--estimated) / 0.06) 8px
   );
 }
+
+/* Native View Transitions for route/anchor changes — no library, respects
+ * reduced-motion. Triggered via document.startViewTransition() (see Index). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

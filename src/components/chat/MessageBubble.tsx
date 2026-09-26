@@ -93,6 +93,14 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
             ))}
             <div className="flex items-center gap-1 pt-1">
               <span className="text-[11px] text-black/30 dark:text-white/30">{time}</span>
+              {message.provider && (
+                <span
+                  className="ml-1.5 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-verified/10 text-verified border border-verified/20"
+                  title={message.model ? `Answered by ${message.provider} · ${message.model}` : `Answered by ${message.provider}`}
+                >
+                  $0.00 · via {message.provider}
+                </span>
+              )}
               <div className="flex items-center gap-0.5 ml-2">
                 <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white" title="Copy">
                   {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}

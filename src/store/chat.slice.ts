@@ -34,25 +34,40 @@ export const createChatSlice: StateCreator<any, [], [], ChatSlice> = (set, get) 
     const ac = new AbortController();
     set({ messages: newMsgs, isAiLoading: true, abortController: ac, connectionStatus: 'connecting' });
     let metric_definitions: any[] = [];
+    let tone = 'analyst';
+    let language = 'en';
     try {
-      const raw = localStorage.getItem('finese-metrics');
+      const raw = localStorage.getItem('finese-settings');
       if (raw) { const parsed = JSON.parse(raw); metric_definitions = parsed.state?.metrics || parsed.metrics || []; }
+    } catch {}
+    // Tone + language travel inside dataset_context (schema-open `any`) so
+    // the edge can frame the same verified number for a different reader.
+    try {
+      const raw = localStorage.getItem('finese-settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.state?.ai?.tone) tone = parsed.state.ai.tone;
+        if (parsed.state?.general?.language) language = parsed.state.general.language;
+      }
     } catch {}
     const datasetContext = fileHash ? {
       fileName, rowCount: get().dataset?.length || (get().sessions.find((s: any) => s.id === activeSessionId)?.rowCount || 0),
       colCount: profile?.length || 0, healthScore, profile, correlations, advancedContext: advanced, sampleData: [], metric_definitions,
+      tone, language,
     } : null;
     const MAX_HISTORY = 30;
     const historySlice = newMsgs.length > MAX_HISTORY ? newMsgs.slice(-MAX_HISTORY) : newMsgs;
     const conversationHistory = historySlice.map((m: ChatMessage) => ({ role: m.role, content: m.role === 'assistant' ? (m.content || '') + (m.artifacts?.length ? ' [artifacts rendered inline]' : '') : m.content }));
     const assistantId = uid();
     let fullText = ''; let attempt = 0; const maxAttempts = 3;
+    let answerMeta: { provider?: string; model?: string } = {};
     const tryStream = async (): Promise<void> => {
       attempt++;
       try {
         await streamChat({
           messages: conversationHistory, datasetContext, fileHash: fileHash || undefined, signal: ac.signal,
           onConnect: () => set({ connectionStatus: 'streaming' }),
+          onMeta: (m) => { answerMeta = { provider: m.provider, model: m.model }; },
           onDelta: (chunk) => {
             fullText += chunk;
             const streamingMsg: ChatMessage = { id: assistantId, role: 'assistant', content: fullText, timestamp: now() };
@@ -70,7 +85,7 @@ export const createChatSlice: StateCreator<any, [], [], ChatSlice> = (set, get) 
               if (art.type === 'profile' && profile) return { ...art, profile };
               return art;
             });
-            const finalMsg: ChatMessage = { id: assistantId, role: 'assistant', content: cleanText, artifacts: enriched, timestamp: now() };
+            const finalMsg: ChatMessage = { id: assistantId, role: 'assistant', content: cleanText, artifacts: enriched, timestamp: now(), provider: answerMeta.provider, model: answerMeta.model };
             const cur = get().messages;
             const finalMsgs = cur.map((m: ChatMessage) => m.id === assistantId ? finalMsg : m);
             const sessionsCur = get().sessions;

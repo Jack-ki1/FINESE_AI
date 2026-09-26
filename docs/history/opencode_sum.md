@@ -376,4 +376,114 @@ Verified: `npm run build` 2754→2754 modules, `npm run test` 33/33.
 
 **Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` 10s (Chat 520k, Index 552k), `bash scripts/check-tokens.sh` ✓, `grep -rn '#2f2f2f'` 0 in `src/` (only docs).
 
+---
+
+## 17. Auth Backdoor Removal + Error Boundaries + Modern-Arch Pass + Homepage Rebuild (2026-09-26 — this session)
+
+**Source:** external review §§1–5 (login backdoor live in Auth.tsx, missing error boundaries, react-query unused, no per-route head, CSR-only marketing, plus new homepage spec).
+
+**1. Emergency — login backdoor deleted, not re-passworded (§1)**
+- `src/pages/Auth.tsx` — sign-in AND sign-up are now Supabase-only. Removed the entire `try { supabase } catch { validateLocalUser() → createLocalSessionForUser → saveLocalSession → /chat }` silent-fallback pattern on both branches (signin per spec snippet; signup same pattern — a non-hardcoded fake identity is still a fake identity). Removed `localAuth` import, removed the plaintext demo-credentials box (`finese_admin@gmail.com / finese_admin1`, `admin@finese.ai / Admin123!`) that shipped in the bundle. Added honest demo entry: `Try the demo (sample data only, nothing saved)` → public `/embed`, no session minted. Auth now honors `?mode=signup` so homepage `Start free` links land on signup.
+- `src/lib/localAuth.ts` — deleted `ensureDefaultAdmin()` and both hardcoded admin seeds entirely. `loadUsers()` no longer seeds anything; `createLocalUser()` forces `is_admin:false`; `isLocalAdmin()` always returns `false`. Added `purgeLegacyLocalAuth()` to wipe `finese-local-session`, `finese_local_session`, `finese_admin_mock_session`, `finese-local-users` so previously-planted fake sessions cannot persist. Verified `grep finese_admin1|Admin123!` → 0 hits in `src/` (only history docs).
+- `src/hooks/useAuth.tsx` — stopped trusting `loadLocalSession()` anywhere. Initial state no longer hydrates from localStorage; `onAuthStateChange`/`getSession` set only Supabase-issued sessions, no local fallback; mount + sign-out both call `purgeLegacyLocalAuth()`. `LOCAL_BYPASS` stays `DEV &&`-guarded (compiled out of prod). `_shared/auth.ts` unchanged — still `supabase.auth.getUser(token)`, no bypass — so server data was and remains safe; only the client shell was exposed.
+- `src/components/layout/Sidebar.tsx` — user fallback `finese_admin@gmail.com` → `Not signed in`, `Free • Open Mode` → `Free plan` (stop advertising the admin email).
+- **Rotation still required (cannot do from repo):** the leaked password `finese_admin1` must be rotated in Supabase Auth, and `VITE_LOCAL_AUTH_BYPASS` must stay unset in prod/preview env vars.
+
+**2. Error boundaries — root cause of the recurring white screens (§2)**
+- New `src/components/ErrorBoundary.tsx` (per spec) + `RouteSkeleton` (token-matched `bg-surface`/`bg-muted` blocks).
+- `src/main.tsx` — outer `<ErrorBoundary><App /></ErrorBoundary>` for catastrophic failures.
+- `src/app/routes.tsx` — replaced single top-level `<Suspense>` with per-route `<ErrorBoundary><Suspense fallback={<RouteSkeleton/>}>…` (`RouteShell`), so one broken page no longer takes the sidebar/shell down.
+
+**3. Modern architecture (§3)**
+- **3.1 react-query put to work:** new `src/hooks/useDatasets.ts` (`fetchDatasets` + `useDatasets` with `queryKey:['datasets']`, `staleTime:30s`) — caching, retry, real error object. Converted first call site `src/pages/Admin.tsx` (hand-rolled `useEffect` + swallowed errors → `useDatasets(5)` with `isLoading`/`error` rendered). `grep useQuery` was 0 hits before; now 1 real usage, pattern copies elsewhere.
+- **3.2 per-route head without a new dep:** new `src/hooks/useDocumentHead.ts` (per spec, title + meta description with restore). Wired into new `Index`, `Admin`, `NotFound`.
+- **3.3 prerender marketing routes only:** hand-rolled `scripts/prerender.mjs` + `npm run prerender` / `build:static` (patches `dist/index.html` post-build: home title/meta, `<noscript>` crawler copy, `prerendered-routes: /` manifest). Verified on this build. Full `vite-react-ssg` noted as follow-up once shareable session/report links need per-route OG cards. Auth routes stay pure SPA.
+
+**4. Honest demo, transitions, skeletons, 404 (§4)**
+- Demo mode done honestly: explicit labeled `/embed` entry on Auth (sample-only, nothing saved, no fake identity) instead of silent fallback.
+- View Transitions: `document.startViewTransition()` in homepage `smoothScroll` + `::view-transition-old/new(root)` 180ms CSS in `src/index.css` (reduced-motion respected), zero bundle cost.
+- Skeletons: `src/components/ui/skeleton.tsx` → `bg-muted border-border/50` (token-matched, no generic grey); `RouteSkeleton` uses `bg-surface`/`bg-muted`.
+- 404: `src/pages/NotFound.tsx` rebuilt on-brand (verified pill, display headline, `Back home` orange CTA + `Open chat`, shows attempted path, per-route head).
+
+**5. Homepage rebuilt to spec (§5, `src/pages/Index.tsx`)**
+- Replaced 285-line colorful page with the ~1/3-length spec page verbatim (nav, hero with `Server-verified compute` pill + `not a guess.` gradient, video slots `/media/hero-demo.mp4` + `/media/verify-demo.mp4` with coded `FallbackProductMockup`, proof section with Verified/Estimated/Flagged list, asymmetric 4-card tools grid stating 17 tools, CTA, footer). No new colors/fonts — existing `--gradient-brand`, `verified`, `surface` tokens only. Type-only tweak: `MouseEvent`/`ReactNode` imports instead of `React.*` namespace so `tsc` passes.
+- **Before publishing:** drop a real 15–20s screen recording into `/media/hero-demo.mp4` (+ poster) of chat resolving `Estimating…` → `Verified`; same for `/media/verify-demo.mp4`. Fallback mockup holds until then. Tool count verified: 17 files in `compute-tools/tools/` — homepage claim accurate.
+
+**Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` 9.4s (Index 552k→9.4k, Chat 521k), `bash scripts/check-tokens.sh` ✓, `node scripts/prerender.mjs` ✓ (`prerendered-routes: /` + noscript in dist).
+
+---
+
+## 18. Admin Login Proper Fix + Free-Model Strategy + Five New Ideas (2026-09-26 — this session)
+
+**Source:** user report "admin credentials unable to login" + spec doc "FINESE AI — The Free-Model Strategy, and More New Ideas" (§§1–4).
+
+### A. Admin login — fixed properly, backdoor NOT restored
+
+Diagnosis (verified, not guessed):
+- Supabase project `qphfaspffindmfqxoepc` is unreachable (`ENOTFOUND` from sandbox) — almost certainly **paused** (free-tier auto-pause). No credential pair can work while DNS is dead; the old code blamed the password.
+- `.env` `VITE_ADMIN_EMAILS` was `local-dev@finese.ai` only — neither admin email was allow-listed, so even a working Supabase login bounced off `/admin` → `/chat` unless `user_metadata.is_admin` was set.
+
+What changed (passwords never enter the repo — neither in code nor in these docs):
+- `src/pages/Auth.tsx` — `friendlyAuthError()` maps `Failed to fetch` → "backend unreachable, project may be paused" (not "wrong password"), invalid-credentials → provisioning hint, unconfirmed-email → confirm hint. Post-login redirect is admin-aware (`/admin` for admins, `/chat` otherwise). New amber `backendDown` banner on the form (8s `/auth/v1/health` probe) tells the user the project ID to unpause.
+- `.env` + `.env.example` — `VITE_ADMIN_EMAILS` now includes both admin emails (emails only, safe).
+- `scripts/ensure-admins.mjs` + `npm run admin:ensure` — provisions both admins via Auth Admin API (create-or-update, email confirmed, `user_metadata.is_admin=true`). Passwords come from `ADMIN1_PASSWORD`/`ADMIN2_PASSWORD` env vars only; script refuses to run without them and without `SUPABASE_SERVICE_ROLE_KEY`.
+- **User action required (cannot be done from repo):** 1) unpause the Supabase project in the dashboard, 2) run `SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… ADMIN1_PASSWORD=… ADMIN2_PASSWORD=… npm run admin:ensure`, 3) sign in at `/auth`.
+
+### B. Failover chain (§2) — the one feature that matters
+- `supabase/functions/FINESE-chat/free-model-chain.ts` (new) — `FREE_CHAIN` (groq → cerebras → openrouter → google → nvidia), `callWithFreeFailover()` (429/5xx → next link; 400/401 stops; skips links with no key; merges user `extraKeys`; `startIndex` rotation). Per spec, plus OpenRouter referer headers.
+- `gateway.ts` — `providerBaseUrl` gains cerebras/nvidia/mistral/github/sambanova.
+- `FINESE-chat/index.ts` — auto mode = no user apiKey + no custom baseUrl ("just let FINESE handle it"); tool rounds + final stream go through the chain; `X-Free-Provider` / `X-Free-Model` / `X-Failover-From` headers on the stream response; chain-exhaustion surfaces as honest 503, not generic 500. `.env.example` documents the five chain secrets.
+
+### C. Built on the chain (§3)
+- **3.1 badge:** `ChatMessage.provider/model` (shared type) ← `streaming.ts onMeta` (headers) ← `chat.slice` stores on final message ← `MessageBubble` renders `$0.00 · via groq` mono pill with model tooltip.
+- **3.2 multi-key:** `AISettings.extraKeys` (persisted, v2 migration) + `FreeQuotaCard` in Settings (Groq/Cerebras/OpenRouter/Google slots, local-only) + `finese-chain-offset` round-robin in `streaming.ts` → edge `chainOffset` start index.
+- **3.3 leaderboard:** migration `20260926000005_model_benchmarks.sql` (`model_benchmarks` public-read + `catalog_health_log`) + `model-benchmark` edge (forced-`correlation` tool-call contract check per chain link, EMA accuracy/latency, upserts, logs `compute_jobs`, CRON_SECRET-or-signed-in auth).
+- **3.4 `/free-models`:** public page — "There is no pricing page. Ever." + live leaderboard (graceful "not yet benchmarked" fallback) + all 12 free providers with key links + Ollama status. Route added, linked from homepage footer. Client uses `src/lib/freeChain.ts` mirror (edge file is Deno-only — never bundled; verified 0 `free-model-chain` refs in dist).
+- **3.5 Ollama:** `src/lib/ollama.ts` (`checkOllama` + per-OS install cmds) + `OllamaSetupCard`/`OllamaInstallSteps` in Settings + widget on `/free-models`.
+- **3.6 catalog health:** `catalog-health` edge (pings 8 providers' `/models`, logs drift; HF/Cloudflare/Ollama honestly excluded — covered by benchmark instead).
+- **3.7 two providers:** `github` (GitHub Models — lowest friction, existing account) + `sambanova` added to `AIProvider`, `FREE_MODELS`, `PROVIDER_DETAILS` (with "terms change, watched by §3.6" honesty notes), Settings grid, `testConnection` sim list.
+
+### D. Other new ideas (§4)
+1. **Health check:** `DatasetHealth.tsx` (null % / duplicates capped 5k scan / outlier cols → 0–100 score + issue chips) rendered in `DataViewer` before first question.
+2. **Watches:** `watch.store.ts` (persisted `finese-watches`, mean/sum per column, ≥X% move) + `WatchManager.tsx` (create/list/remove, checks on dataset load, toast on move; server cron noted as follow-up).
+3. **Tone toggle:** `AISettings.tone` (analyst/board/plain, v2 migration) + `ToneToggle.tsx` in `Topbar` + `dataset_context.tone` → edge `buildSystemPrompt` audience block.
+4. **Bookmarklet:** `public/finese-bookmarklet.js` (largest-table → CSV, fully local) + `WebTableGrab.tsx` + new `Web table` tab in `DataViewer`.
+5. **Multilingual:** General language extended to 9 languages (en/fr/es/de/zh/ja/ar/hi/pt) + `dataset_context.language` → edge response-language block (numbers/code/tool args unchanged).
+
+**Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` 6.8s (incl. new `FreeModels` chunk, `DataViewer` 50k with health+watches), `bash scripts/check-tokens.sh` ✓.
+
+---
+
+## 19. Single-User Local Mode — Supabase Optional (2026-09-26 — this session)
+
+**Source:** user request — sole developer, running locally, eliminate the need for Supabase right now.
+
+**Design (deliberately NOT a return of the backdoor):** the removed pattern was *silent* fallback + *hardcoded passwords* + *seeded admins* that shipped to everyone. Local mode is the opposite on all three: an **explicit opt-in flag** (`VITE_LOCAL_MODE`, default `false`), **no password at all** (password theater on your own laptop), and **nothing seeded** — the session is created only by the user's own button click. Server-side nothing changes (edge functions still accept only Supabase JWTs), so a misconfigured deploy shows a permanent pill + console warning instead of silently working.
+
+- `src/lib/localMode.ts` (new) — `isLocalMode()` flag check + loud `console.warn` when on.
+- `src/lib/localAuth.ts` — owner session under new key `finese-local-owner` (`is_local_owner`, 30-day, `local-owner-` token prefix). `purgeLegacyLocalAuth()` explicitly does NOT touch it.
+- `src/hooks/useAuth.tsx` — local-mode branch: restores owner session, makes **zero** Supabase calls, `isAdmin` honors `is_local_owner` only when the flag is on, new `isLocalMode` context value, sign-out clears owner.
+- `src/pages/Auth.tsx` — "Continue locally as owner" card (HardDrive icon, single-user warning) above the untouched Supabase form; backend-down probe skipped in local mode.
+- Data layer goes local-first: `ingest-client` (ingest + rows + profile straight to localStorage), `compute-client` (server block skipped, same local math), `streaming` (no token required; without a dataset a clear "load data or point at Ollama" error), `useDatasets` (inventory from `finese-dataset-*-profile` keys → Admin page works offline).
+- `Topbar` — permanent `Local · single-user` amber pill while the flag is on.
+- `.env` — `VITE_LOCAL_MODE="true"` for this machine; `.env.example` documents it as default-false + never-on-shared-hosting.
+- Graceful already: Workspaces/FreeModels/Metrics degrade without backend (try/catch, fallbacks).
+
+**To go back to cloud:** set `VITE_LOCAL_MODE="false"`, unpause Supabase, run `npm run admin:ensure`, restart dev. To share/deploy: keep the flag `false` (default) — the pill and console warning make a leak obvious.
+
+**Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` 7.8s, `bash scripts/check-tokens.sh` ✓.
+
+---
+
+## 20. Commit-Readiness: Browserslist, Chunk Splitting, Mixed Imports, Lint Error (2026-09-26 — this session)
+
+**Source:** user's build/commit report (3 issues) + pre-commit verification.
+
+1. **Browserslist:** `npx update-browserslist-db@latest` → caniuse-lite `1.0.30001727` → `1.0.30001812` (lockfile-only change, 3 lines). Stale-data warning gone.
+2. **Chunks:** merged `manualChunks` into the existing `vite.config.ts` (kept server/aliases/dedupe — the report's snippet would have wiped them). Split vendors into `vendor-react / vendor-ui / vendor-libs / vendor-router / vendor-supabase / vendor-xlsx / vendor-charts / vendor`. Deliberate deviation: `@duckdb` + `pyodide` return `undefined` so they stay lazy (naive snippet would have dragged DuckDB into vendor). Result: Chat `520→64kB`, index entry `555→39kB`, every chunk under the 500kB advisory (largest is `vendor` 491kB raw / 143kB gzip), size warning gone.
+3. **Mixed imports:** `SecondOpinion.tsx` (inline `await import(supabase/client)`) and `artifact-parser.ts:33` (`.then`-style dynamic import — invisible to an `await import` grep) converted to static imports. Same latent pattern fixed proactively in `Topbar.tsx` (`sonner`) and `Settings.tsx` (`@/lib/ollama`); `shared/stats` and `duckdb` dynamic imports intentionally left lazy (perf, not flagged). "Dynamically imported by" warnings: zero.
+4. **Commit path:** fixed the 1 eslint *error* (`jsx-a11y/anchor-is-valid` disable comment for a non-installed plugin in `WebTableGrab.tsx`); `npm run lint` now 0 errors / 28 warnings (warnings don't fail). Verified `.env` is git-ignored (`.gitignore:29`) so local keys + `VITE_LOCAL_MODE=true` cannot leak into the push; only `.env.example` commits.
+
+**Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` ~7s (all chunks < 500kB, 0 mixed-import / browserslist warnings), `npm run lint` 0 errors, `bash scripts/check-tokens.sh` ✓. Also noted: `framer-motion` is a dependency with zero imports in `src/` — dead weight for a later cleanup, not this commit.
+
 - Next: (auto-updated on next addition)

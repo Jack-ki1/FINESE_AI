@@ -7,6 +7,9 @@ import { ExportButton } from '@/components/chat/ExportButton';
 import { ChatSearch } from '@/components/chat/ChatSearch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { TrustScore } from '@/components/layout/TrustScore';
+import { ToneToggle } from '@/components/chat/ToneToggle';
+import { isLocalMode } from '@/lib/localMode';
+import { toast } from 'sonner';
 
 export function Topbar() {
   const { fileName, isLoaded, dataset, profile, sidebarOpen, toggleSidebar, sessions, activeSessionId, changelogOpen, toggleChangelog } = useDatumStore();
@@ -60,6 +63,11 @@ export function Topbar() {
           )}
         </div>
         <span className="hidden lg:inline text-xs text-black/40 dark:text-white/30 truncate max-w-[200px]">{session?.title || 'New chat'}</span>
+        {isLocalMode() && (
+          <span title="Single-user local mode — no cloud backend. Never enable VITE_LOCAL_MODE on a shared deployment." className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+            Local · single-user
+          </span>
+        )}
         <span className="hidden md:inline text-[10px] font-mono px-1.5 py-0.5 rounded border bg-muted text-muted-foreground">⌘K</span>
       </div>
 
@@ -76,13 +84,14 @@ export function Topbar() {
           const title = session?.title || 'FINESE AI chat';
           try {
             if (navigator.share) { await navigator.share({ title, url }); }
-            else { await navigator.clipboard.writeText(url); const { toast } = await import('sonner'); toast.success('Link copied to clipboard'); }
-          } catch { try { await navigator.clipboard.writeText(url); const { toast } = await import('sonner'); toast.success('Link copied'); } catch {} }
+            else { await navigator.clipboard.writeText(url); toast.success('Link copied to clipboard'); }
+          } catch { try { await navigator.clipboard.writeText(url); toast.success('Link copied'); } catch {} }
         }} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border bg-card hover:bg-accent">
           <span className="hidden md:inline">Share</span>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684z"/></svg>
         </button>
         <TrustScore />
+        <ToneToggle />
         <ChatSearch />
         <ExportButton />
         <ThemeToggle />

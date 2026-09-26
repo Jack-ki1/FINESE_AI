@@ -178,5 +178,11 @@ export default function randomForest(args: any, data: any[]) {
     confusion_matrix: cm,
     feature_importance: importances.slice(0, 10),
     predictions_sample: finalTest.slice(0, 5).map((r, i) => ({ true: trueLabels[i], pred: predLabels[i] })),
+    model_card: {
+      training_rows: clean.length,
+      assumptions: "Bagged CART depth ≤4, sqrt(p) feature sampling, bootstrap; 75/25 holdout",
+      caveat: "Small holdout — accuracy variance high; permutation importance shuffles within holdout only",
+      method: "Lite Random Forest (bagged Gini CART, voting)",
+    },
   };
 }

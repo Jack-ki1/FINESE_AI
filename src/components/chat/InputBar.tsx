@@ -106,7 +106,7 @@ export function InputBar({ onSend }: { onSend?: (text: string) => void }) {
             <button
               key={i}
               onClick={() => handleSuggestionClick(s.prompt)}
-              className="px-3 py-1.5 rounded-full text-xs bg-white dark:bg-[#2f2f2f] border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 shadow-sm"
+              className="px-3 py-1.5 rounded-full text-xs bg-card border border-border hover:bg-muted shadow-sm"
             >
               {s.text}
             </button>

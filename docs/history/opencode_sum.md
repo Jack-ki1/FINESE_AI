@@ -338,4 +338,42 @@ Verified: `npm run build` 2754→2754 modules, `npm run test` 33/33.
 
 **Verification:** `tsc 0`, `build` ok (Chat 518k), preview on 4173 rebuilt and verified; chat now colorful orange as homepage.
 
+---
+
+## 16. Security Fix + FINESE Brand Rollout + Moat Polish (2026-09-26 — this session)
+
+**Source:** external audit scorecard §1-4 (auth bypass, 2 hex leftovers, README drift, verifier orphan, plus 5 new ideas and full brand board Navy #0D1117/#1C1F26, Orange #FF6A00, Amber #FFB300, Raleway, 7 icons, 3 motifs).
+
+**1. Auth bypass — fixed properly (§1)**
+- `src/hooks/useAuth.tsx:26` re-added `import.meta.env.DEV &&` guard: `const LOCAL_BYPASS = import.meta.env.DEV && VITE_LOCAL_AUTH_BYPASS === 'true'` — compiled out of prod builds entirely. The prior `fix: auth bypass works in preview (remove DEV guard)` left bypass controlled only by `VITE_LOCAL_AUTH_BYPASS` in any env. Verified `_shared/auth.ts` still calls `supabase.auth.getUser(token)` server-side with no bypass, so no data hole, but `ProtectedRoute` chrome was bypassable. Action for hosting: ensure `VITE_LOCAL_AUTH_BYPASS` is unset/`false` in prod/preview env vars and fix the underlying white-screen session bug (loading timeout + Supabase redirect allowlist) so flag can return to DEV-only or be removed.
+
+**2. Scorecard cleanups (§2)**
+- Hardcoded `#2f2f2f`: `src/components/layout/Topbar.tsx:42` `bg-white dark:bg-[#2f2f2f]` → `bg-popover`; `src/components/chat/MessageBubble.tsx:50` textarea `bg-white dark:bg-[#2f2f2f]` → `bg-card`; `src/components/chat/InputBar.tsx:109` suggestion pill `bg-white dark:bg-[#2f2f2f]` → `bg-card`.
+- Remaining hex drift: `src/components/artifacts/ChartArtifact.tsx:10` `12× #f59e0b…` → `hsl(var(--chart-1))` tokens + grid/ticks → `hsl(var(--border))` / `hsl(var(--muted-foreground))`; `src/components/data-viewer/AutoEDA.tsx:12` `COLORS #f59e0b…` → chart tokens; `src/components/report/ReportExport.tsx:12` exported HTML inline `#e5e7eb/#0f766e…` → brand `hsl(var(--…))` tokens; `src/components/ui/chart.tsx:48` left as `allow-hex` (Tailwind `[stroke='#ccc']` selectors for Recharts); `src/pages/Auth.tsx:104-107` Google logo `#4285F4…` marked `allow-hex` (brand logo, not drift).
+- `tailwind.config.ts:15` `Inter` → `Raleway` (`display/body/sans/mono`), `index.html:14` font swap `Inter` → `Raleway` + `JetBrains Mono`.
+- `src/index.css:1` full brand token replacement per §4.1 — `:root` is now dark primary `215 28% 7% / 222 15% 13% / 216 24% 96%` with `primary 25 100% 50% / primary-foreground 215 28% 7%` (dark ink on orange clears AA), `verified 214 90% 52%` (blue, hue family of navy, avoids re-collapsing orange/verified), `estimated 42 100% 45%`, `critical 358 75% 50%`, `chart-1..6` distinct, `datum-*` real hues; `.light/[data-theme=light]` block added, `.dark` kept as alias for `next-themes` compat; motifs added `bg-circuit / bg-halftone / bg-mesh` + `verified-hatched` + `animate-halftone`.
+- `src/components/ThemeToggle.tsx:1` dark is now default for new sessions (saved `light` → light, else dark), writes both `classList.dark/.light` and `data-theme`.
+- README honesty: `README.md` MLOps section now clarifies `drift_check` is verified but alerting/deployment are `Estimated` scaffolds, 51 MLOps prompts are templates not prod; `/prompts` now accurately 256 (52+51+51+51+51) with verified vs estimated split.
+
+**3. Verifier gets a surface (§3.1)**
+- `src/lib/verifier.ts:1` unchanged (real checks), `src/components/artifacts/ArtifactRenderer.tsx:168` flagged badge now hatched (`verified-hatched` + `border-dashed` + amber) with `title` tooltip ` [warn] n=18…` — zero new layout, credible signal visible without rebuilding Evidence Rail. Confidence `●/◐/○` still shows in same tooltip.
+
+**4. Metric library screen (§3.2)**
+- `src/pages/MetricsLibrary.tsx:1` new read-only `/metrics` — table `name / expression / unit / description / created_at` from `useMetricsStore` (`finese-metrics` + Supabase `metric_definitions`), link to `Settings → Metrics` to define. `src/app/routes.tsx:16` added `/metrics` (ProtectedRoute) lazy.
+
+**5. Workspace invite flow (§3.3)**
+- `src/pages/Workspaces.tsx:1` new `/workspaces` — local-first MVP: create workspace (`crypto.randomUUID`), email invite (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) adds `workspace_members`-shaped row locally under `localStorage:finese-workspaces`, removes, and notes server path (owner inserts `workspace_members(workspace_id, user_id, role)` when invitee signs in). `src/app/routes.tsx:16` `/workspaces` added; `src/components/layout/Sidebar.tsx:1` added Metrics (BarChart3) + Workspaces (Cloud) pills.
+
+**6. Design-token lint (§3.4)**
+- `scripts/check-tokens.sh:1` one-line CI grep `grep -rn '#[0-9a-fA-F]{3,6}' src/components src/pages --include='*.tsx' | grep -v allow-hex` fails on raw hex outside `index.css`. Added `package.json: lint:tokens / lint:all`, `ci.yml` step `npm run lint:tokens`, `.husky/pre-commit` hook `npm run lint:tokens`. Verified `bash scripts/check-tokens.sh` → `✓`.
+
+**7. Model cards (§3.5)**
+- `supabase/functions/compute-tools/tools/pca.ts:84`, `forecast.ts:50`, `random-forest.ts:181` each now return `model_card {training_rows, assumptions, caveat, method}` (standard ML practice). `src/components/artifacts/ArtifactRenderer.tsx:255` renders `model_card` as tiny bordered card below artifact body (rows + method + assumptions + caveat).
+
+**8. Brand motifs & iconography (§4.2-4.7)**
+- `src/index.css:1` motifs assigned one job each: `bg-circuit` → `src/components/chat/ChatWindow.tsx:51` empty/chat scroll + auth blur; `bg-halftone` + `animate-halftone` → `src/components/chat/TypingIndicator.tsx:19` processing dots; `bg-mesh` reserved for report/export cover (not in app chrome).
+- `src/components/layout/Sidebar.tsx:1` icon pass: `Search` (chat/insights), `BarChart3` (stats/metrics), `Database` (dataset), `Cloud` (workspaces/integrations), `PieChart` (visuals), `BrainCircuit` (verifier/temporary chat), `ShieldCheck` (admin/settings) at consistent `strokeWidth={1.75}` rounded joins — single stroke weight across app. `Topbar/MessageBubble/AppShell` now `bg-background/border-border` and verified blue is distinct from orange CTA.
+
+**Verification:** `npx tsc --noEmit` 0, `npm run test` 33/33, `npm run build` 10s (Chat 520k, Index 552k), `bash scripts/check-tokens.sh` ✓, `grep -rn '#2f2f2f'` 0 in `src/` (only docs).
+
 - Next: (auto-updated on next addition)

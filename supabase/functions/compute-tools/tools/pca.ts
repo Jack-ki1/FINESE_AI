@@ -81,5 +81,11 @@ export default function pca(args: any, data: any[]) {
     verified: true, columns, n: rows.length, n_components: k,
     eigenvalues, explained_ratio, cumulative, loadings, projected_sample: projected,
     note: "loadings = eigenvectors of correlation matrix; explained_ratio sums to ≤1",
+    model_card: {
+      training_rows: rows.length,
+      assumptions: "Numeric, standardized; linear components; complete rows only",
+      caveat: "PCA is sensitive to scaling/outliers; interpret loadings with domain context",
+      method: "Correlation-matrix eigen via power iteration + deflation",
+    },
   };
 }

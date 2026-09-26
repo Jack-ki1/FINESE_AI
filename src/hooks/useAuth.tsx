@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { loadLocalSession, clearLocalSession } from '@/lib/localAuth';
 
 interface AuthCtx {
   session: Session | null;
@@ -23,7 +24,7 @@ function checkIsAdmin(user: User | null): boolean {
   return false;
 }
 
-const LOCAL_BYPASS = import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
+const LOCAL_BYPASS = import.meta.env.DEV && import.meta.env.VITE_LOCAL_AUTH_BYPASS === 'true';
 function createLocalSession(): any {
   const now = Math.floor(Date.now()/1000);
   return {
@@ -56,30 +57,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return s as any;
       } catch { return createLocalSession() as any; }
     }
+    // Try local stored session (signup/login fallback) before supabase
+    const local = loadLocalSession();
+    if (local) return local as Session;
     return null;
   });
-  const [loading, setLoading] = useState(!LOCAL_BYPASS);
+  const [loading, setLoading] = useState(() => {
+    if (LOCAL_BYPASS) return false;
+    const local = loadLocalSession();
+    if (local) return false;
+    return true;
+  });
 
   useEffect(() => {
     if (LOCAL_BYPASS) return;
+    // If we already have a local session, don't override it with null supabase session
+    const local = loadLocalSession();
     let cancelled = false;
     const timeout = setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, 3000);
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
       if (cancelled) return;
-      setSession(s);
+      if (s) {
+        setSession(s);
+      } else {
+        // keep local session if exists, otherwise null
+        const ls = loadLocalSession();
+        if (ls) setSession(ls as Session);
+        else setSession(null);
+      }
       setLoading(false);
       clearTimeout(timeout);
     });
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
-      setSession(data.session);
+      if (data.session) setSession(data.session);
+      else {
+        const ls = loadLocalSession();
+        if (ls) setSession(ls as Session);
+        else setSession(null);
+      }
       setLoading(false);
       clearTimeout(timeout);
     }).catch(() => {
-      if (!cancelled) setLoading(false);
-      clearTimeout(timeout);
+      if (!cancelled) {
+        const ls = loadLocalSession();
+        if (ls) setSession(ls as Session);
+        else setLoading(false);
+        clearTimeout(timeout);
+      }
     });
     return () => {
       cancelled = true;
@@ -91,12 +118,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (LOCAL_BYPASS) {
       try { localStorage.removeItem('finese_local_session'); } catch {}
+      clearLocalSession();
       try { localStorage.removeItem('finese-ai-store'); } catch {}
       window.location.href = '/auth';
       return;
     }
     try { await supabase.auth.signOut(); } catch {}
-    try { localStorage.removeItem('finese-ai-store'); } catch {}
+    clearLocalSession();
+    try { localStorage.removeItem('finese_local_session'); } catch {}
+    // don't wipe finese-ai-store entirely to preserve other users? but clear session part
     window.location.href = '/auth';
   };
 

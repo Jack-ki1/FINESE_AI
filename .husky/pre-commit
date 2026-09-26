@@ -1,2 +1,3 @@
 npx lint-staged 2>/dev/null || npm run lint
+npm run lint:tokens 2>/dev/null || bash scripts/check-tokens.sh
 npx tsc --noEmit

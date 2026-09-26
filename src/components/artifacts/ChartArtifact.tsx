@@ -7,14 +7,27 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 
-const COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f87171', '#fb923c', '#f472b6', '#818cf8', '#34d399', '#fbbf24', '#f97316', '#ec4899'];
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--chart-6))',
+  'hsl(var(--datum-violet))',
+  'hsl(var(--datum-green))',
+  'hsl(var(--datum-amber))',
+  'hsl(var(--critical))',
+  'hsl(var(--primary))',
+  'hsl(var(--verified))',
+];
 
 const tooltipStyle = {
-  backgroundColor: '#0d0d20',
-  border: '1px solid #17173a',
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
   borderRadius: 6,
   fontSize: 11,
-  color: '#eef2ff',
+  color: 'hsl(var(--foreground))',
 };
 
 export function ChartArtifact({ artifact }: { artifact: Artifact }) {
@@ -26,9 +39,9 @@ export function ChartArtifact({ artifact }: { artifact: Artifact }) {
   if (!xCol || !yCol || !data.length) return <p className="text-xs text-muted-foreground p-4">No data available for chart</p>;
 
   const chartData = aggregateData(data, xCol, yCol, aggFn as any);
-  const gridProps = { strokeDasharray: '3 3', stroke: '#17173a' };
-  const xProps = { dataKey: 'x', tick: { fill: '#8892b0', fontSize: 10 }, angle: -35, textAnchor: 'end' as const, height: 50 };
-  const yProps = { tick: { fill: '#8892b0', fontSize: 10 } };
+  const gridProps = { strokeDasharray: '3 3', stroke: 'hsl(var(--border))' };
+  const xProps = { dataKey: 'x', tick: { fill: 'hsl(var(--muted-foreground))', fontSize: 10 }, angle: -35, textAnchor: 'end' as const, height: 50 };
+  const yProps = { tick: { fill: 'hsl(var(--muted-foreground))', fontSize: 10 } };
   const mainColor = COLORS[colorIdx % COLORS.length];
 
   const downloadCSV = () => {

@@ -29,8 +29,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         <Topbar />
         <div className="flex-1 flex overflow-hidden min-w-0">
-          <main className="flex-1 min-w-0 overflow-y-auto bg-background flex flex-col items-center">
-            <div className="w-full max-w-[800px] flex-1 flex flex-col min-h-0">
+          <main className={`flex-1 min-w-0 overflow-y-auto bg-background flex flex-col ${sidebarOpen ? 'items-center' : 'items-stretch'}`}>
+            <div className={`w-full flex-1 flex flex-col min-h-0 ${sidebarOpen ? 'max-w-[800px]' : 'max-w-none'}`}>
               {children}
             </div>
           </main>

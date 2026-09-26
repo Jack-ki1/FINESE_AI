@@ -9,7 +9,7 @@ interface AutoEDAProps {
   fileName: string;
 }
 
-const COLORS = ['#f59e0b','#22d3ee','#a78bfa','#4ade80','#f87171','#fb923c'];
+const COLORS = ['hsl(var(--chart-1))','hsl(var(--chart-2))','hsl(var(--chart-3))','hsl(var(--chart-4))','hsl(var(--critical))','hsl(var(--estimated))'];
 
 export function AutoEDA({ data, profile, fileName }: AutoEDAProps) {
   const numeric = profile.filter(p=>p.type==='numeric');
@@ -63,7 +63,7 @@ export function AutoEDA({ data, profile, fileName }: AutoEDAProps) {
               <XAxis type="number" tick={{fontSize:9}} />
               <YAxis dataKey="name" type="category" width={90} tick={{fontSize:9}} />
               <Tooltip />
-              <Bar dataKey="nulls" fill="#f59e0b" radius={[0,3,3,0]} />
+              <Bar dataKey="nulls" fill="hsl(var(--chart-1))" radius={[0,3,3,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -81,7 +81,7 @@ export function AutoEDA({ data, profile, fileName }: AutoEDAProps) {
                     <td className="p-2 font-mono font-medium">{row.col}</td>
                     {Object.keys(row).filter(k=>k!=='col').map(col=>{
                       const v=row[col]; const intensity=Math.abs(v);
-                      return <td key={col} className="p-2 text-center font-mono" style={{background: `rgba(245,158,11,${intensity*0.6})`, color: intensity>0.5?'white':'inherit'}}>{v}</td>
+                      return <td key={col} className="p-2 text-center font-mono" style={{background: `hsl(var(--chart-1) / ${intensity*0.6})`, color: intensity>0.5?'hsl(var(--primary-foreground))':'inherit'}}>{v}</td>
                     })}
                   </tr>
                 ))}

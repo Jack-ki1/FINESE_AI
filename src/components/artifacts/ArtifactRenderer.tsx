@@ -167,14 +167,14 @@ function VerifiedBadge({ artifact }: { artifact: Artifact }) {
   if (isVerified) {
     if (flagged) {
       return (
-        <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-700 border-amber-500/30 uppercase tracking-wider" title={flags.map(f=>f.message).join("\n")}>
+        <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border verified-hatched text-amber-700 border-amber-500/30 border-dashed uppercase tracking-wider cursor-help" title={flags.map(f=>`[${f.level}] ${f.message}`).join("\n")}>
           <ShieldAlert className="w-3 h-3"/> Verified · flagged — {flags[0]?.message}
           {conf && <span className="opacity-70 normal-case">· {conf.strength} ({conf.reason})</span>}
         </span>
       );
     }
     return (
-      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-verified/15 text-verified border-verified/30 uppercase tracking-wider animate-verified-in" title={conf? `${conf.strength}: ${conf.reason}`: undefined}>
+      <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border bg-verified/15 text-verified border-verified/30 uppercase tracking-wider animate-verified-in cursor-help" title={conf? `${conf.strength}: ${conf.reason}`: flags.length ? flags.map(f=>`[${f.level}] ${f.message}`).join("\n") : undefined}>
         ● Verified · real compute
         {isToolBacked && <span className="opacity-70 normal-case tracking-normal">· {String((artifact as any).toolName)}</span>}
         {conf && <span className="opacity-70 normal-case">· {conf.strength==="high"?"●":conf.strength==="low"?"○":"◐"} {conf.strength}</span>}
@@ -252,6 +252,14 @@ export function ArtifactRenderer({ artifact }: { artifact: Artifact }) {
           </div>
         </div>
         <ArtifactBody artifact={artifact} />
+        {(artifact as any).model_card && (
+          <div className="mx-3 mb-3 rounded-xl border bg-muted/20 p-3 text-xs leading-relaxed">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Model card</p>
+            <p><span className="font-medium">Training rows:</span> {(artifact as any).model_card.training_rows} · <span className="font-medium">Method:</span> {(artifact as any).model_card.method}</p>
+            <p><span className="font-medium">Assumptions:</span> {(artifact as any).model_card.assumptions}</p>
+            <p className="text-amber-700 dark:text-amber-300"><span className="font-medium">Caveat:</span> {(artifact as any).model_card.caveat}</p>
+          </div>
+        )}
         {(artifact as any).verified===false && <div className="px-3 pb-3"><SecondOpinion prompt={`Second opinion: ${artifact.title||artifact.type} — ${JSON.stringify(artifact).slice(0,500)}`} /></div>}
       </div>
       {fullscreen && (

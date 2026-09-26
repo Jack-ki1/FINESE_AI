@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
-    "vendor:pyodide": "mkdir -p public/pyodide && cp -r node_modules/pyodide/* public/pyodide/ 2>/dev/null || echo 'pyodide not installed'"
+    "vendor:pyodide": "mkdir -p public/pyodide && cp -r node_modules/pyodide/* public/pyodide/ 2>/dev/null || echo 'pyodide not installed'",
+    "lint:tokens": "bash scripts/check-tokens.sh",
+    "lint:all": "npm run lint && npm run lint:tokens"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

@@ -47,7 +47,7 @@ export function MessageBubble({ message, isPinned, onTogglePin }: {
         {isUser ? (
           editing ? (
             <div className="space-y-2">
-              <textarea value={editText} onChange={e=>setEditText(e.target.value)} className="w-full min-h-[60px] p-3 rounded-xl border bg-white dark:bg-[#2f2f2f] text-sm focus:outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10" autoFocus />
+              <textarea value={editText} onChange={e=>setEditText(e.target.value)} className="w-full min-h-[60px] p-3 rounded-xl border bg-card text-sm focus:outline-none focus:ring-1 focus:ring-ring" autoFocus />
               <div className="flex gap-2">
                 <button onClick={handleEdit} className="px-3 py-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black text-xs font-medium">Send</button>
                 <button onClick={()=>setEditing(false)} className="px-3 py-1.5 rounded-full border text-xs">Cancel</button>

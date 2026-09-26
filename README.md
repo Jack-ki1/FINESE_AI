@@ -22,12 +22,12 @@
 - **Data Quality**: Profiling, validation rules, health scoring — backed by `describe_column`/`outliers` where possible
 
 ### **MLOps & Production Readiness**
-- **Drift & Monitoring**: Real `drift_check` (verified); alerting/deployment strategies as generated guidance (`Estimated`)
-- **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner; `forecast` is verified for time-series
+- **Drift & Monitoring**: Real `drift_check` (verified, PSI + KS against stored profile); alerting/deployment/monitoring scaffolding is AI-generated guidance (`Estimated`) — no managed prod infrastructure in this repo
+- **Experiment & Cost**: Templates for tracking/versioning/cost analysis (`Estimated`) — bring your own runner; `forecast` (Holt linear) is verified for time-series. MLOps prompts (51 in `/prompts` → MLOps) are planning scaffolds, not deployed pipelines
 
 ### **Homepage & Chat Experience**
-- **Homepage (`/`)** — public, colorful marketing landing (no auth): hero gradient (violet→cyan→amber blobs, mock chat card `West -14.2% p=0.003 r=-0.62`), trust bar `● Verified vs ◐ Estimated`, 6 feature cards, 4-step “How it works”, 16+1 tools grid, Architecture + Stack, use cases, testimonial + free-forever pitch. Explains the entire project at a glance.
-- **Chat (`/chat`)** — orange-themed (`from-orange-50 via-white to-amber-50`, `from-orange-500 to-amber-500` bubbles/buttons) — warm, energetic, distinct from homepage’s cool violet/cyan. Pure chat (WelcomeScreen is minimal logo only, no starter cards/sample pills; no wizards/evidence rail in chat per latest request). Message bubbles are orange gradient for user, white + orange border for assistant, pinned filter `bg-orange-500/10`.
+- **Homepage (`/`)** — public landing (no auth): navy/near-black theme (brand #0D1117/#1C1F26, orange→amber CTAs), hero mock card `West -14.2% p=0.003 r=-0.62`, trust bar `● Verified vs ◐ Estimated`, 6 feature cards, 4-step “How it works”, 17 tools grid, Architecture + Stack, use cases, testimonial + free-forever pitch.
+- **Chat (`/chat`)** — pure chat (WelcomeScreen minimal logo, no wizards/evidence rail per request). Message bubbles use brand orange gradient for user, assistant shows hatched `Verified · flagged` badge when verifier fires (see verifier note below).
 
 ### **Specialized Response Modes**
 The AI adapts its behavior based on context:
@@ -213,7 +213,7 @@ The AI response includes rich interactive artifacts:
 
 ### 4. Explore Sample Prompts
 
-Visit `/prompts` for 200+ curated prompts across Data Analysis, Data Science, Data Engineering, and Business analysis — each prompt maps to either a verified tool (when numeric claims are needed) or an `Estimated` scaffolding artifact. No prompt fabricates numbers: verified artifacts are always badge-marked.
+Visit `/prompts` for 256 curated prompts across 5 sectors (52 Analysis, 51 Data Science, 51 Data Engineering, 51 MLOps, 51 Others) — only a subset maps to the 17 verified tools (stats/ML/join/semantic-metric); the rest produce `Estimated` scaffolding (pipelines, schemas, experiment designs). No prompt fabricates numbers: verified artifacts are always `● Verified` badge-marked, everything else is `⚠ Estimated`.
 
 ### 5. Use External Agents via MCP
 

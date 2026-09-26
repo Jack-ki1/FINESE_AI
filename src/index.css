@@ -4,126 +4,190 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 7%;
+    /* Light is base theme — #F2F4F7 background, white sidebar */
+    --background: 216 24% 96%;        /* #F2F4F7 */
+    --foreground: 215 28% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 7%;
+    --card-foreground: 215 28% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 7%;
-    --primary: 222 28% 20%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 222 18% 32%;
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 222 47% 7%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 35%;
-    --accent: 222 18% 32%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --popover-foreground: 215 28% 7%;
+    --primary: 25 100% 50%;           /* #FF6A00 */
+    --primary-foreground: 215 28% 7%;
+    --primary-glow: 42 100% 50%;      /* #FFB300 */
+    --secondary: 216 20% 92%;
+    --secondary-foreground: 215 28% 7%;
+    --muted: 216 20% 92%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 216 20% 92%;
+    --accent-foreground: 215 28% 7%;
+    --destructive: 358 75% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 28% 20%;
+    --border: 216 20% 88%;
+    --input: 216 20% 88%;
+    --ring: 25 100% 50%;
     --radius: 0.75rem;
 
     --surface: 0 0% 100%;
-    --ink: 222 47% 7%;
+    --ink: 215 28% 7%;
     --code-bg: 222 47% 7%;
-    --verified: 176 68% 28%;
-    --estimated: 36 85% 38%;
-    --critical: 0 72% 51%;
+    --verified: 214 90% 52%;
+    --verified-foreground: 0 0% 100%;
+    --estimated: 42 100% 45%;
+    --critical: 358 75% 50%;
 
-    --chart-1: 221 70% 52%;
-    --chart-2: 265 62% 58%;
-    --chart-3: 188 68% 42%;
-    --chart-4: 142 55% 40%;
-    --chart-5: 36 88% 48%;
+    --chart-1: 25 100% 50%;   /* orange */
+    --chart-2: 214 90% 52%;   /* verified blue */
+    --chart-3: 42 95% 50%;    /* amber */
+    --chart-4: 265 55% 58%;   /* violet */
+    --chart-5: 160 55% 42%;   /* teal-green */
+    --chart-6: 222 15% 55%;
 
-    --datum-surf: 210 20% 96%;
+    --datum-surf: 216 20% 92%;
     --datum-raised: 0 0% 100%;
-    --datum-border-2: 214 32% 91%;
-    --datum-amber: 36 85% 38%;
-    --datum-cyan: 188 68% 42%;
-    --datum-violet: 265 62% 58%;
-    --datum-green: 142 55% 40%;
-    --datum-red: 0 72% 51%;
-    --datum-orange: 24 88% 52%;
+    --datum-border-2: 216 20% 88%;
+    --datum-amber: 42 85% 38%;
+    --datum-cyan: 214 90% 52%;
+    --datum-violet: 265 55% 58%;
+    --datum-green: 160 55% 42%;
+    --datum-red: 358 75% 50%;
+    --datum-orange: 25 100% 50%;
     --datum-pink: 340 60% 55%;
     --datum-text-2: 215 16% 35%;
-    --datum-text-3: 215 20% 65%;
+    --datum-text-3: 215 20% 60%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(222 28% 20%), hsl(215 25% 28%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(222 28% 20% / 0.10), hsl(215 25% 28% / 0.06));
+    --gradient-brand: linear-gradient(135deg, hsl(25 100% 50%), hsl(42 100% 50%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(25 100% 50% / 0.10), hsl(42 100% 50% / 0.06));
 
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 0 0% 65%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 16% 28%;
+    --sidebar-primary: 25 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 24% 96%;
+    --sidebar-accent-foreground: 215 28% 7%;
+    --sidebar-border: 216 20% 88%;
+    --sidebar-ring: 25 100% 50%;
   }
 
-  .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 96%;
-    --card: 222 35% 8%;
-    --card-foreground: 210 20% 96%;
-    --popover: 222 35% 8%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 214 30% 58%;
-    --primary-foreground: 222 47% 6%;
-    --primary-glow: 214 28% 68%;
-    --secondary: 217 33% 14%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 68%;
-    --accent: 214 28% 68%;
-    --accent-foreground: 210 20% 96%;
-    --destructive: 0 72% 55%;
+  .light, [data-theme="light"] {
+    --background: 216 24% 96%;
+    --foreground: 215 28% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 7%;
+    --primary: 25 100% 50%;
+    --primary-foreground: 215 28% 7%;
+    --primary-glow: 42 100% 50%;
+    --secondary: 216 20% 92%;
+    --secondary-foreground: 215 28% 7%;
+    --muted: 216 20% 92%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 216 20% 92%;
+    --accent-foreground: 215 28% 7%;
+    --destructive: 358 75% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 214 30% 58%;
+    --border: 216 20% 88%;
+    --input: 216 20% 88%;
+    --ring: 25 100% 50%;
 
-    --surface: 222 47% 6%;
-    --ink: 210 20% 96%;
-    --code-bg: 222 47% 6%;
-    --verified: 176 60% 45%;
-    --estimated: 36 75% 48%;
-    --critical: 0 72% 55%;
+    --surface: 0 0% 100%;
+    --ink: 215 28% 7%;
+    --code-bg: 222 47% 7%;
+    --verified: 214 90% 52%;
+    --verified-foreground: 0 0% 100%;
+    --estimated: 42 100% 45%;
+    --critical: 358 75% 50%;
 
-    --chart-1: 221 70% 60%;
-    --chart-2: 265 60% 62%;
-    --chart-3: 188 65% 48%;
-    --chart-4: 142 50% 48%;
-    --chart-5: 36 85% 55%;
+    --chart-1: 25 100% 50%;
+    --chart-2: 214 90% 52%;
+    --chart-3: 42 95% 50%;
+    --chart-4: 265 55% 58%;
+    --chart-5: 160 55% 42%;
+    --chart-6: 222 15% 55%;
 
-    --datum-surf: 217 33% 14%;
-    --datum-raised: 222 35% 8%;
-    --datum-border-2: 217 33% 20%;
-    --datum-amber: 36 75% 48%;
-    --datum-cyan: 188 65% 48%;
-    --datum-violet: 265 60% 62%;
-    --datum-green: 142 50% 48%;
-    --datum-red: 0 72% 55%;
-    --datum-orange: 24 85% 58%;
-    --datum-pink: 340 60% 60%;
-    --datum-text-2: 215 20% 68%;
-    --datum-text-3: 215 14% 42%;
+    --datum-surf: 216 20% 92%;
+    --datum-raised: 0 0% 100%;
+    --datum-border-2: 216 20% 88%;
+    --datum-amber: 42 85% 38%;
+    --datum-cyan: 214 90% 52%;
+    --datum-violet: 265 55% 58%;
+    --datum-green: 160 55% 42%;
+    --datum-red: 358 75% 50%;
+    --datum-orange: 25 100% 50%;
+    --datum-pink: 340 60% 55%;
+    --datum-text-2: 215 16% 35%;
+    --datum-text-3: 215 20% 60%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(214 30% 58%), hsl(222 28% 32%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(214 30% 58% / 0.18), hsl(222 28% 32% / 0.12));
+    --gradient-brand: linear-gradient(135deg, hsl(25 100% 50%), hsl(42 100% 50%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(25 100% 50% / 0.10), hsl(42 100% 50% / 0.06));
 
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 0 0% 65%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 16% 28%;
+    --sidebar-primary: 25 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 24% 96%;
+    --sidebar-accent-foreground: 215 28% 7%;
+    --sidebar-border: 216 20% 88%;
+    --sidebar-ring: 25 100% 50%;
+  }
+
+  /* Dark override — toggled via .dark class or [data-theme="dark"] */
+  .dark, [data-theme="dark"] {
+    --background: 215 28% 7%;
+    --foreground: 216 24% 96%;
+    --card: 222 15% 13%;
+    --card-foreground: 216 24% 96%;
+    --popover: 222 15% 13%;
+    --popover-foreground: 216 24% 96%;
+    --primary: 25 100% 50%;
+    --primary-foreground: 215 28% 7%;
+    --primary-glow: 42 100% 50%;
+    --secondary: 222 15% 18%;
+    --secondary-foreground: 216 24% 96%;
+    --muted: 222 15% 18%;
+    --muted-foreground: 215 16% 60%;
+    --accent: 222 15% 18%;
+    --accent-foreground: 216 24% 96%;
+    --destructive: 358 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 15% 20%;
+    --input: 222 15% 20%;
+    --ring: 25 100% 50%;
+    --surface: 222 15% 13%;
+    --ink: 216 24% 96%;
+    --code-bg: 215 28% 5%;
+    --verified: 214 90% 52%;
+    --verified-foreground: 0 0% 100%;
+    --estimated: 42 100% 45%;
+    --critical: 358 75% 50%;
+    --chart-1: 25 100% 50%;
+    --chart-2: 214 90% 52%;
+    --chart-3: 42 95% 50%;
+    --chart-4: 265 55% 58%;
+    --chart-5: 160 55% 42%;
+    --chart-6: 222 15% 55%;
+    --datum-surf: 222 15% 18%;
+    --datum-raised: 222 15% 13%;
+    --datum-border-2: 222 15% 20%;
+    --datum-amber: 42 95% 50%;
+    --datum-cyan: 214 90% 52%;
+    --datum-violet: 265 55% 58%;
+    --datum-green: 160 55% 42%;
+    --datum-red: 358 75% 50%;
+    --datum-orange: 25 100% 50%;
+    --datum-pink: 340 60% 55%;
+    --datum-text-2: 215 16% 65%;
+    --datum-text-3: 215 14% 45%;
+    --gradient-brand: linear-gradient(135deg, hsl(25 100% 50%), hsl(42 100% 50%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(25 100% 50% / 0.15), hsl(42 100% 50% / 0.08));
+    --sidebar-background: 215 28% 5%;
+    --sidebar-foreground: 216 20% 65%;
+    --sidebar-primary: 25 100% 50%;
+    --sidebar-primary-foreground: 215 28% 7%;
+    --sidebar-accent: 222 15% 18%;
+    --sidebar-accent-foreground: 216 24% 96%;
+    --sidebar-border: 222 15% 16%;
+    --sidebar-ring: 25 100% 50%;
   }
 }
 
@@ -133,13 +197,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Raleway', -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Raleway', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
   }
@@ -186,6 +250,23 @@
   color: transparent;
 }
 
+/* Brand motifs — low opacity, reusable */
+.bg-circuit {
+  background-image:
+    radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.10) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+.bg-halftone {
+  background-image: radial-gradient(circle, hsl(var(--primary) / 0.08) 1.5px, transparent 1.5px);
+  background-size: 14px 14px;
+}
+.bg-mesh {
+  background-image:
+    linear-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -211,6 +292,10 @@
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
+@keyframes halftonePulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
 .animate-fade-slide { animation: fadeSlideIn 0.3s ease-out; }
 .animate-expand { animation: expandIn 0.25s ease-out; }
 .animate-verified-in { animation: verifiedIn 0.35s ease-out; }
@@ -218,7 +303,19 @@
 .animate-dot-2 { animation: bounce-dot 0.7s ease-in-out 0.14s infinite; }
 .animate-dot-3 { animation: bounce-dot 0.7s ease-in-out 0.28s infinite; }
 .animate-pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.animate-halftone { animation: halftonePulse 1.4s ease-in-out infinite; }
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient-shift 4s ease infinite;
+}
+
+/* Hatched verified badge for flagged state */
+.verified-hatched {
+  background: repeating-linear-gradient(
+    -45deg,
+    hsl(var(--estimated) / 0.15),
+    hsl(var(--estimated) / 0.15) 4px,
+    hsl(var(--estimated) / 0.06) 4px,
+    hsl(var(--estimated) / 0.06) 8px
+  );
 }

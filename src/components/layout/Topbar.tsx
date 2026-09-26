@@ -39,7 +39,7 @@ export function Topbar() {
             <svg className={`w-3 h-3 opacity-60 transition-transform ${modelOpen?'rotate-180':''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           {modelOpen && (
-            <div className="absolute top-full left-0 mt-1 w-72 rounded-xl border bg-white dark:bg-[#2f2f2f] shadow-xl p-2 z-20">
+            <div className="absolute top-full left-0 mt-1 w-72 rounded-xl border bg-popover shadow-xl p-2 z-20">
               <div className="px-3 py-2 border-b border-black/5 dark:border-white/5">
                 <p className="text-xs font-semibold">FINESE AI</p>
                 <p className="text-[11px] text-muted-foreground">Intelligent Analytics • 2026</p>
@@ -71,7 +71,14 @@ export function Topbar() {
             <span className={`text-[11px] px-1.5 py-1 rounded-full border hidden lg:inline ${health>=90?'bg-green-500/10 text-green-600 border-green-500/20':health>=70?'bg-amber-500/10 text-amber-600 border-amber-500/20':'bg-red-500/10 text-red-600 border-red-500/20'}`}>♥ {health}%</span>
           </div>
         )}
-        <button onClick={()=>navigator.clipboard.writeText(window.location.href)} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border bg-white dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10">
+        <button onClick={async()=>{
+          const url = window.location.href;
+          const title = session?.title || 'FINESE AI chat';
+          try {
+            if (navigator.share) { await navigator.share({ title, url }); }
+            else { await navigator.clipboard.writeText(url); const { toast } = await import('sonner'); toast.success('Link copied to clipboard'); }
+          } catch { try { await navigator.clipboard.writeText(url); const { toast } = await import('sonner'); toast.success('Link copied'); } catch {} }
+        }} className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border bg-card hover:bg-accent">
           <span className="hidden md:inline">Share</span>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684z"/></svg>
         </button>

@@ -9,6 +9,8 @@ import { DataUpload } from '@/components/data-viewer/DataUpload';
 import { AutoEDA } from '@/components/data-viewer/AutoEDA';
 import { DataCleaning } from '@/components/data-viewer/DataCleaning';
 import { SqlLab } from '@/components/data-viewer/SqlLab';
+import { GoogleSheetsConnector } from '@/components/data-viewer/GoogleSheetsConnector';
+import { ReportExport } from '@/components/report/ReportExport';
 import { ArrowLeft, TableProperties, BarChart3, FileText, Upload, Sparkles, Brush, Database, FileSpreadsheet, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

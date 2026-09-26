@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDatumStore } from '@/store/datum.store';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Database, Plus, Search, BookOpen, LogOut, X, Settings, PanelLeft } from 'lucide-react';
+import { BarChart3, Database, Plus, Search, BookOpen, LogOut, X, Settings, PanelLeft, ShieldCheck, Cloud, PieChart, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
 import fineseLogo from '@/assets/finese-logo.jpg';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -43,117 +43,154 @@ export function Sidebar() {
           isMobile ? 'fixed inset-y-0 left-0 z-50 h-[100dvh] shadow-2xl' : 'h-[100dvh]'
         }`}
       >
-        {/* Header — ChatGPT style */}
+        {/* Header */}
         <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-          <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white">
-            <PanelLeft className="w-4 h-4" />
+          <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground hover:text-foreground">
+            <PanelLeft className="w-4 h-4" strokeWidth={1.75} />
           </button>
           <div className="flex items-center gap-1">
-            <button onClick={() => { navigate('/settings'); closeOnMobile(); }} className="p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white" title="Settings">
-              <Settings className="w-4 h-4" />
+            <button onClick={() => { navigate('/settings'); closeOnMobile(); }} className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground hover:text-foreground" title="Settings">
+              <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />
             </button>
             {isMobile && (
-              <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-white/10 text-white/70">
-                <X className="w-4 h-4" />
+              <button onClick={toggleSidebar} className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground">
+                <X className="w-4 h-4" strokeWidth={1.75} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Logo + New Chat — ChatGPT style */}
+        {/* Logo + New Chat */}
         <div className="px-3 pb-3">
           <div className="flex items-center gap-2.5 px-2 py-2 mb-3">
             <img src={fineseLogo} alt="FINESE" className="w-7 h-7 rounded-full object-cover" />
-            <span className="font-semibold text-[14px] tracking-tight">FINESE AI</span>
-            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono">2026</span>
+            <span className="font-semibold text-[14px] tracking-tight text-sidebar-foreground">FINESE AI</span>
+            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-sidebar-accent text-sidebar-foreground/60 font-mono border border-sidebar-border">2026</span>
           </div>
           <button onClick={() => { newSession(); navigate('/chat'); closeOnMobile(); }}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white text-black text-[13px] font-medium hover:bg-white/90 transition-colors">
-            <Plus className="w-4 h-4" /> New chat
-          </button>
-          <button onClick={() => { navigate('/chat'); closeOnMobile(); }} className="w-full mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 text-white/80 text-[13px] hover:bg-white/10">
-            <Search className="w-4 h-4" /> Temporary chat
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-[13px] font-medium hover:opacity-90 transition-opacity">
+            <Plus className="w-4 h-4" strokeWidth={1.75} /> New chat
           </button>
         </div>
 
-        {/* Search — functional like ChatGPT */}
+        {/* Search */}
         <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/5 focus-within:bg-white/10 focus-within:border-white/10">
-            <Search className="w-3.5 h-3.5 text-white/40" />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border focus-within:bg-card focus-within:border-sidebar-ring">
+            <Search className="w-3.5 h-3.5 text-sidebar-foreground/50" />
             <input
               value={search}
               onChange={e=>setSearch(e.target.value)}
               placeholder="Search chats"
-              className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/40 outline-none"
+              className="flex-1 bg-transparent text-[13px] text-sidebar-foreground placeholder:text-sidebar-foreground/40 outline-none"
             />
-            {search && <button onClick={()=>setSearch('')} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>}
+            {search && <button onClick={()=>setSearch('')} className="text-sidebar-foreground/50 hover:text-sidebar-foreground"><X className="w-3 h-3" /></button>}
           </div>
         </div>
 
-        {/* Sample Prompts + Data */}
+        {/* Sample Prompts + Data + Metrics/Workspaces */}
         <div className="px-3 py-2 flex gap-2">
-          <button onClick={() => { navigate('/prompts'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 text-white/70 text-xs hover:bg-white/10">
-            <BookOpen className="w-3.5 h-3.5" /> Prompts
+          <button onClick={() => { navigate('/prompts'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-sidebar-accent text-sidebar-foreground text-xs hover:opacity-80 border border-sidebar-border">
+            <BookOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> Prompts
           </button>
-          <button onClick={() => { navigate('/data/upload'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 text-white/70 text-xs hover:bg-white/10">
-            <Database className="w-3.5 h-3.5" /> Data
+          <button onClick={() => { navigate('/data/upload'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-sidebar-accent text-sidebar-foreground text-xs hover:opacity-80 border border-sidebar-border">
+            <Database className="w-3.5 h-3.5" strokeWidth={1.75} /> Data
+          </button>
+        </div>
+        <div className="px-3 pb-1 flex gap-2">
+          <button onClick={() => { navigate('/metrics'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-sidebar-accent text-sidebar-foreground text-[11px] hover:opacity-80 border border-sidebar-border">
+            <BarChart3 className="w-3.5 h-3.5" strokeWidth={1.75} /> Metrics
+          </button>
+          <button onClick={() => { navigate('/workspaces'); closeOnMobile(); }} className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg bg-sidebar-accent text-sidebar-foreground text-[11px] hover:opacity-80 border border-sidebar-border">
+            <Cloud className="w-3.5 h-3.5" strokeWidth={1.75} /> Workspaces
           </button>
         </div>
 
-        {/* Chats — grouped like ChatGPT */}
-        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+        {/* Chats — grouped */}
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4 scrollbar-thin scrollbar-thumb-sidebar-border">
           {Object.entries(grouped).map(([label, list]) => list.length ? (
             <div key={label}>
-              <p className="text-[11px] font-medium text-white/40 px-2 py-1.5">{label}</p>
+              <p className="text-[11px] font-medium text-sidebar-foreground/50 px-2 py-1.5">{label}</p>
               <div className="space-y-0.5">
                 {list.map(s => {
                   const active = s.id === activeSessionId;
                   return (
-                    <div key={s.id} className={`group flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] cursor-pointer ${active ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.05] hover:text-white'}`} onClick={() => { setActiveSession(s.id); navigate('/chat'); closeOnMobile(); }}>
-                      <MessageSquare className="w-4 h-4 shrink-0 opacity-60" />
-                      <span className="truncate flex-1">{s.title}</span>
-                      <button onClick={e=>{e.stopPropagation(); /* share */ navigator.clipboard.writeText(window.location.href);}} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded">
-                        <Search className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <SessionRow key={s.id} session={s} active={active} onSelect={()=>{ setActiveSession(s.id); navigate('/chat'); closeOnMobile(); }} />
                   );
                 })}
               </div>
             </div>
           ) : null)}
-          {filtered.length===0 && <p className="text-xs text-white/30 px-2 py-4">No chats found</p>}
+          {filtered.length===0 && <p className="text-xs text-sidebar-foreground/40 px-2 py-4">No chats found</p>}
         </div>
 
-        {/* Dataset — ChatGPT style footer */}
+        {/* Dataset footer */}
         {isLoaded && (
           <div className="px-3 py-2">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/5">
-              <Database className="w-4 h-4 text-white/60" />
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-sidebar-accent border border-sidebar-border">
+              <PieChart className="w-4 h-4 text-sidebar-foreground/60" strokeWidth={1.75} />
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-medium text-white truncate block">{fileName}</span>
-                <span className="text-[11px] text-white/40">{dataset?.length} rows · {profile?.length} cols</span>
+                <span className="text-xs font-medium text-sidebar-foreground truncate block">{fileName}</span>
+                <span className="text-[11px] text-sidebar-foreground/60">{dataset?.length} rows · {profile?.length} cols</span>
               </div>
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-verified animate-pulse" />
             </div>
           </div>
         )}
 
-        {/* User — ChatGPT style */}
-        <div className="p-3 border-t border-white/5">
-          <div className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer" onClick={()=>navigate('/settings')}>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-semibold">
+        {/* User */}
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-sidebar-accent cursor-pointer" onClick={()=>navigate('/settings')}>
+            <div className="w-7 h-7 rounded-full bg-brand-gradient flex items-center justify-center text-white text-xs font-semibold">
               {(user?.email || 'F').slice(0,1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-white truncate">{user?.email || 'finese_admin@gmail.com'}</p>
-              <p className="text-[11px] text-white/40">Free • Open Mode</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.email || 'finese_admin@gmail.com'}</p>
+              <p className="text-[11px] text-sidebar-foreground/60">Free • Open Mode</p>
             </div>
-            <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white">
+            <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </aside>
     </>
+  );
+}
+
+function SessionRow({ session, active, onSelect }: { session: any; active: boolean; onSelect: () => void }) {
+  const { deleteSession, renameSession } = useDatumStore();
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(session.title);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const save = () => {
+    const t = title.trim();
+    if (t && t !== session.title) renameSession(session.id, t);
+    setEditing(false);
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className={`group flex items-center gap-1 px-2 py-1.5 rounded-lg text-[13px] ${active ? 'bg-sidebar-accent border border-sidebar-border text-sidebar-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'}`}>
+      <button onClick={onSelect} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+        <Search className="w-3.5 h-3.5 shrink-0 opacity-60" strokeWidth={1.75} />
+        {editing ? (
+          <input value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') save(); if(e.key==='Escape'){ setTitle(session.title); setEditing(false); } }} onBlur={save} autoFocus className="flex-1 bg-card border border-sidebar-border rounded px-1.5 py-0.5 text-xs outline-none" onClick={e=>e.stopPropagation()} />
+        ) : (
+          <span className="truncate flex-1">{session.title}</span>
+        )}
+      </button>
+      {!editing && (
+        <div className={`flex items-center gap-0.5 ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+          <button onClick={e=>{ e.stopPropagation(); setMenuOpen(!menuOpen); }} className="p-1 rounded hover:bg-card border border-transparent hover:border-sidebar-border"><MoreHorizontal className="w-3 h-3" /></button>
+          {menuOpen && (
+            <div className="flex items-center gap-0.5">
+              <button onClick={e=>{ e.stopPropagation(); setTitle(session.title); setEditing(true); }} className="p-1 rounded hover:bg-card border border-sidebar-border" title="Rename"><Pencil className="w-3 h-3" /></button>
+              <button onClick={e=>{ e.stopPropagation(); if(confirm(`Delete "${session.title}"?`)) deleteSession(session.id); }} className="p-1 rounded hover:bg-destructive/10 text-destructive border border-transparent hover:border-destructive/20" title="Delete"><Trash2 className="w-3 h-3" /></button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

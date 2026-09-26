@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSettingsStore, FREE_MODELS, type AIProvider } from '@/store/settings.store';
+import { useSettingsStore, FREE_MODELS, PROVIDER_DETAILS, type AIProvider, ACCENT_PRESETS } from '@/store/settings.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,13 +12,19 @@ import { useMetricsStore } from '@/store/metrics.store';
 import { useDatumStore } from '@/store/datum.store';
 
 const providers: { id: AIProvider; label: string; desc: string; free: boolean }[] = [
-  { id: 'openrouter', label: 'OpenRouter', desc: '20+ free models, one key, 50/day free (1k with $10)', free: true },
-  { id: 'groq', label: 'Groq', desc: 'Fastest LPU, 1k-14k/day free, no card', free: true },
-  { id: 'huggingface', label: 'Hugging Face', desc: '$0.10/mo free, 100k+ models', free: true },
-  { id: 'ollama', label: 'Ollama (Local)', desc: '100% free, private, unlimited, local GPU/CPU', free: true },
-  { id: 'google', label: 'Google AI Studio', desc: 'Gemini 1M context, 1500/d free', free: true },
-  { id: 'openai', label: 'OpenAI', desc: 'Paid, gpt-4o', free: false },
-  { id: 'anthropic', label: 'Anthropic', desc: 'Paid, Claude', free: false },
+  { id: 'openrouter', label: 'OpenRouter', desc: '15+ :free models, 1 key, 20 RPM 50/d → 1k/d', free: true },
+  { id: 'groq', label: 'Groq', desc: 'Fastest LPU, 30 RPM, 1k-14k/d, 300-1000 t/s', free: true },
+  { id: 'huggingface', label: 'Hugging Face', desc: '$0.10/mo free, 131K via Router', free: true },
+  { id: 'ollama', label: 'Ollama (Local)', desc: 'Unlimited, private, local GPU/CPU', free: true },
+  { id: 'google', label: 'Google AI Studio', desc: 'Gemini 1M, 15 RPM 1500/d', free: true },
+  { id: 'cerebras', label: 'Cerebras', desc: 'Wafer-Scale, 1M tok/d free, 30× fast', free: true },
+  { id: 'mistral', label: 'Mistral', desc: 'Experiment ~1B tok/mo free, Codestral', free: true },
+  { id: 'cloudflare', label: 'Cloudflare', desc: '10k neurons/d free, edge', free: true },
+  { id: 'nvidia', label: 'NVIDIA NIM', desc: '40 RPM, 1K req/mo free, 1M ctx', free: true },
+  { id: 'cohere', label: 'Cohere', desc: 'Trial $5, Command R+ 128K', free: true },
+  { id: 'together', label: 'Together', desc: 'Paid $5 min, 200+ models', free: false },
+  { id: 'openai', label: 'OpenAI', desc: 'Paid, gpt-4o / o1', free: false },
+  { id: 'anthropic', label: 'Anthropic', desc: 'Paid, Claude 3.5', free: false },
   { id: 'custom', label: 'Custom', desc: 'Any OpenAI-compatible URL', free: false },
 ];
 
@@ -102,25 +108,53 @@ export default function SettingsPage() {
                     <Input value={ai.model} onChange={e=>setAI({model:e.target.value})} placeholder="model id (e.g. openrouter/free)" className="mt-2 h-8 text-xs font-mono" />
                   </div>
 
+                  {/* Provider-specific expanded details — researched 2026 */}
+                  {(() => { const d = PROVIDER_DETAILS[ai.provider]; if (!d) return null; return (
+                    <div className="rounded-xl border bg-card p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold capitalize">{ai.provider} — details</h4>
+                        <div className="flex gap-2">
+                          <a href={d.docs} target="_blank" className="text-[11px] underline text-primary">Docs</a>
+                          <a href={d.keyUrl} target="_blank" className="text-[11px] underline text-primary">Get key</a>
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-3 text-xs">
+                        <div><span className="font-medium">Base URL:</span> <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px] break-all">{d.baseUrl || ai.baseUrl || 'custom'}</code></div>
+                        <div><span className="font-medium">Limits:</span> <span className="text-muted-foreground">{d.limits}</span></div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium">How to get started:</p>
+                        <ol className="list-decimal pl-4 text-xs text-muted-foreground space-y-0.5 mt-1">
+                          {d.howTo.map((s,i)=><li key={i}>{s}</li>)}
+                        </ol>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground bg-muted/30 p-2 rounded border">{d.notes}</p>
+                    </div>
+                  ); })()}
+
+                  {/* Custom per-provider config */}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-xs">API Key {ai.useFree ? '(optional for free)' : '(required for paid)'}</Label>
                       <Input type="password" value={ai.apiKey} onChange={e=>setAI({apiKey:e.target.value})} placeholder={ai.useFree ? 'Leave empty for free tier' : 'sk-...'} className="h-8 text-xs font-mono" />
                       {!ai.useFree && !ai.apiKey && <p className="text-[11px] text-amber-600">Paid model needs your key — stored in localStorage only.</p>}
-                      {ai.provider==='openrouter' && <p className="text-[11px] text-muted-foreground">Get free key: <a href="https://openrouter.ai/keys" target="_blank" className="underline">openrouter.ai/keys</a> — 50/day free, 1k/day after $10</p>}
-                      {ai.provider==='groq' && <p className="text-[11px] text-muted-foreground">Get free key: <a href="https://console.groq.com/keys" target="_blank" className="underline">console.groq.com/keys</a> — no card</p>}
-                      {ai.provider==='huggingface' && <p className="text-[11px] text-muted-foreground">Get token: <a href="https://huggingface.co/settings/tokens" target="_blank" className="underline">huggingface.co/settings/tokens</a> — $0.10/mo free</p>}
-                      {ai.provider==='ollama' && <p className="text-[11px] text-muted-foreground">Run locally: <code>ollama run llama3.2</code> then set Base URL <code>http://localhost:11434</code></p>}
+                      <p className="text-[11px] text-muted-foreground">Key is stored locally (<code>finese-settings</code>) and never sent to our servers except as Bearer to your chosen provider.</p>
+                      {ai.provider==='cerebras' && <p className="text-[11px] text-muted-foreground">Cerebras: free 1M tok/d → get $5 credit at cloud.cerebras.ai, then <code>api.cerebras.ai/v1</code></p>}
+                      {ai.provider==='mistral' && <p className="text-[11px] text-muted-foreground">Mistral: Experiment ~1B tok/mo free — phone verify at console.mistral.ai</p>}
+                      {ai.provider==='cloudflare' && <p className="text-[11px] text-muted-foreground">Cloudflare: replace <code>{"{id}"}</code> with your account ID → dash.cloudflare.com</p>}
+                      {ai.provider==='nvidia' && <p className="text-[11px] text-muted-foreground">NVIDIA NIM: build.nvidia.com → 1K req/mo free, 40 RPM</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs">Base URL (custom / Ollama)</Label>
-                      <Input value={ai.baseUrl} onChange={e=>setAI({baseUrl:e.target.value})} placeholder={ai.provider==='ollama' ? 'http://localhost:11434' : ai.provider==='openrouter' ? 'https://openrouter.ai/api/v1' : ai.provider==='groq' ? 'https://api.groq.com/openai/v1' : 'https://api.openai.com/v1'} className="h-8 text-xs font-mono" />
-                      <Label className="text-xs mt-2 block">How to implement</Label>
+                      <Label className="text-xs">Base URL (custom / override)</Label>
+                      <Input value={ai.baseUrl} onChange={e=>setAI({baseUrl:e.target.value})} placeholder={PROVIDER_DETAILS[ai.provider]?.baseUrl || 'https://api.openai.com/v1'} className="h-8 text-xs font-mono" />
+                      <Label className="text-xs mt-2 block">Custom model id</Label>
+                      <Input value={ai.model} onChange={e=>setAI({model:e.target.value})} placeholder="e.g. openrouter/free or gpt-4o-mini" className="h-8 text-xs font-mono" />
                       <div className="text-[11px] text-muted-foreground bg-muted/30 p-2 rounded border">
-                        1. Pick <b>FREE</b> provider → model auto-selected<br/>
-                        2. For free: leave key empty, click Test<br/>
-                        3. For paid: paste your key, choose paid model<br/>
-                        4. Click Test → Save is automatic (localStorage)
+                        <b>Custom:</b> any OpenAI-compatible endpoint (LocalAI, vLLM, LiteLLM, Together, custom proxy).<br/>
+                        1. Pick provider or choose Custom<br/>
+                        2. Paste key (if free, leave empty)<br/>
+                        3. Override Base URL if needed<br/>
+                        4. Test → auto-saved
                       </div>
                     </div>
                   </div>
@@ -185,12 +219,35 @@ export default function SettingsPage() {
 
             <TabsContent value="appearance" className="space-y-4 mt-6">
               <Card>
-                <CardHeader><CardTitle className="text-sm">Appearance</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
+                <CardHeader><CardTitle className="text-sm">Appearance — Theme & Colors</CardTitle><CardDescription className="text-xs">Light sidebar is now white, dark is navy. Pick an accent that tints buttons, links and active states.</CardDescription></CardHeader>
+                <CardContent className="space-y-6">
                   <div><Label className="text-xs">Theme</Label>
                     <select value={general.theme} onChange={e=>setGeneral({theme:e.target.value as any})} className="mt-1 h-8 w-full border rounded px-2 text-sm bg-background"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+                    <p className="text-[11px] text-muted-foreground mt-1">Dark is default (FINESE brand). Light makes sidebar white as requested. Applied instantly.</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Theme is applied via next-themes. Restart may be needed.</p>
+                  <div>
+                    <Label className="text-xs">Accent color — diverse options</Label>
+                    <p className="text-[11px] text-muted-foreground mb-2">Applies to primary buttons, links, focus rings and sidebar active states. Verified blue stays distinct.</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                      {ACCENT_PRESETS.map(c=>(
+                        <button key={c.id} onClick={()=>setGeneral({accent:c.hsl})} className={`p-2 rounded-xl border text-left space-y-1 ${general.accent===c.hsl ? 'border-primary ring-1 ring-primary/20 bg-primary/5' : 'border-border hover:bg-accent'}`} title={c.label}>
+                          <div className="w-8 h-8 rounded-lg border shadow-sm" style={{background:c.hex}} />
+                          <div className="text-[10px] font-medium leading-tight">{c.label}</div>
+                          <div className="text-[9px] font-mono text-muted-foreground">{c.hex}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Label className="text-xs">Custom HSL</Label>
+                      <Input value={general.accent} onChange={e=>setGeneral({accent:e.target.value})} placeholder="25 100% 50%" className="h-7 text-xs font-mono max-w-[180px]" />
+                      <div className="w-7 h-7 rounded border" style={{background:`hsl(${general.accent})`}} />
+                    </div>
+                  </div>
+                  <div className="rounded-lg border bg-muted/30 p-3 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary" />
+                    <div><p className="text-xs font-medium">Preview</p><p className="text-[11px] text-muted-foreground">Buttons and active nav use this accent. Sidebar primary follows it.</p></div>
+                    <Button size="sm" className="ml-auto">Example button</Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

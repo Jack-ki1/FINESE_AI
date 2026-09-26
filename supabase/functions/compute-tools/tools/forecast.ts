@@ -47,5 +47,11 @@ export default function forecast(args: any, data: any[]) {
     last_trend: Math.round(trend * 1000) / 1000,
     forecasts, mae, rmse, mape,
     note: "Holt linear trend on given order" + (date_col ? ` (sorted by ${date_col})` : " (row order)"),
+    model_card: {
+      training_rows: n,
+      assumptions: "Linear trend, Holt smoothing (alpha, beta); equally spaced or sorted by date_col",
+      caveat: "No seasonality; extrapolates trend — widen intervals beyond fitted horizon",
+      method: "Holt linear (double exponential smoothing)",
+    },
   };
 }

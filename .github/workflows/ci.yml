@@ -16,6 +16,7 @@ jobs:
       - run: npm ci
       - run: npm run vendor:pyodide
       - run: npm run lint
+      - run: npm run lint:tokens
       - run: npx tsc --noEmit
       - run: npm run test -- --coverage
       - run: npm run build

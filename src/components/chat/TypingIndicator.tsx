@@ -16,10 +16,10 @@ export function TypingIndicator() {
         <span className="text-xs font-medium text-brand-gradient">
           {isLoaded ? 'Analyzing your data…' : 'Thinking…'}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 bg-halftone animate-halftone rounded-full px-2 py-1">
           <span className="w-[6px] h-[6px] rounded-full bg-primary animate-dot-1" />
-          <span className="w-[6px] h-[6px] rounded-full bg-datum-cyan animate-dot-2" />
-          <span className="w-[6px] h-[6px] rounded-full bg-datum-pink animate-dot-3" />
+          <span className="w-[6px] h-[6px] rounded-full bg-verified animate-dot-2" />
+          <span className="w-[6px] h-[6px] rounded-full bg-estimated animate-dot-3" />
         </div>
       </div>
     </div>

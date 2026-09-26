@@ -65,28 +65,50 @@ export function DataUpload() {
   const loadSample = async (name: string) => {
     try {
       setLocalStage('parsing');
-      let data: Record<string, any>[];
-      if (name === 'benchmark') {
-        const { benchmarkData } = await import('@/lib/sample-datasets');
-        data = benchmarkData;
-        await ingest(data, 'benchmark_100x5.json');
-        toast.success('Sample loaded', { description: `${data.length} rows × ${Object.keys(data[0]).length} cols — salary mean ${Math.round(data.reduce((s,r)=>s+r.salary,0)/data.length)}` });
-      } else {
-        const res = await fetch('/benchmark_100x5.json');
-        data = await res.json();
-        await ingest(data, 'benchmark_100x5.json');
-        toast.success('Sample loaded');
+      const mod = await import('@/lib/sample-datasets');
+      let data: Record<string, any>[] = [];
+      let file = '';
+      if (name === 'sales') {
+        data = mod.salesData;
+        file = 'sample_sales_22x6.json';
+      } else if (name === 'hr') {
+        data = mod.hrData;
+        file = 'sample_hr_20x6.json';
+      } else if (name === 'benchmark') {
+        data = mod.benchmarkData;
+        file = 'benchmark_100x5.json';
       }
-    } catch (e:any) { toast.error(e.message); }
+      await ingest(data, file);
+      toast.success('Sample loaded', { description: `${file} — ${data.length} rows × ${Object.keys(data[0]||{}).length} cols` });
+    } catch (e:any) { toast.error(e.message || 'Failed to load sample'); }
     finally { setLocalStage('idle'); }
   };
 
   return (
     <div className="flex flex-col items-center gap-6 py-8">
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" onClick={() => loadSample('benchmark')} disabled={loading} className="gap-2 text-xs"><Sparkles className="w-3.5 h-3.5"/> Load 100×5 Sample (salary/age)</Button>
-        <Button size="sm" variant="outline" onClick={() => window.location.href='/chat'} className="text-xs">Go to Chat →</Button>
+      {/* Sample data that ships with the app */}
+      <div className="w-full max-w-2xl">
+        <h3 className="text-sm font-semibold mb-3">Try sample data — ships with the app</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button onClick={() => loadSample('sales')} disabled={loading} className="text-left p-4 rounded-xl border bg-card hover:border-primary/30 hover:bg-accent/30 transition-colors">
+            <div className="flex items-center gap-2 mb-1"><FileSpreadsheet className="w-4 h-4 text-primary"/><span className="text-sm font-medium">Sales Performance</span><span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">22 × 6</span></div>
+            <p className="text-xs text-muted-foreground">Region, product, revenue, quantity — 4 regions, 3 products. Great for group-by, correlation, forecasting.</p>
+            <span className="inline-flex mt-3 text-xs font-medium text-primary">Load sample →</span>
+          </button>
+          <button onClick={() => loadSample('hr')} disabled={loading} className="text-left p-4 rounded-xl border bg-card hover:border-primary/30 hover:bg-accent/30 transition-colors">
+            <div className="flex items-center gap-2 mb-1"><FileSpreadsheet className="w-4 h-4 text-verified"/><span className="text-sm font-medium">HR Workforce</span><span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-verified/10 text-verified border border-verified/20">20 × 6</span></div>
+            <p className="text-xs text-muted-foreground">Department, salary, years, performance — Engineering/Marketing/Sales/HR. Try model training.</p>
+            <span className="inline-flex mt-3 text-xs font-medium text-verified">Load sample →</span>
+          </button>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => loadSample('benchmark')} disabled={loading} className="gap-2 text-xs"><Sparkles className="w-3.5 h-3.5"/> Load 100×5 Benchmark</Button>
+          <Button size="sm" variant="ghost" onClick={() => window.location.href='/chat'} className="text-xs">Go to Chat →</Button>
+        </div>
       </div>
+
+      <div className="w-full max-w-2xl border-t pt-6">
+        <h3 className="text-sm font-semibold mb-3">Upload your own data</h3>
       <div
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
@@ -140,6 +162,7 @@ export function DataUpload() {
           </div>
         </div>
         <input ref={fileRef} type="file" accept=".csv,.tsv,.xlsx,.xls,.json" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      </div>
       </div>
     </div>
   );

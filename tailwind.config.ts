@@ -12,9 +12,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Inter", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        sans: ["Inter", "sans-serif"],
+        display: ["Raleway", "sans-serif"],
+        body: ["Raleway", "sans-serif"],
+        sans: ["Raleway", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {

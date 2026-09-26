@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import fineseLogo from '@/assets/finese-logo.jpg';
+import { createLocalUser, validateLocalUser, createLocalSessionForUser, saveLocalSession } from '@/lib/localAuth';
 
 export default function Auth() {
   const { session, loading } = useAuth();
@@ -26,19 +27,73 @@ export default function Auth() {
     e.preventDefault();
     if (busy) return;
     setBusy(true);
+    const isNetworkError = (m: string) => /failed to fetch|network|enotfound|fetch/i.test(m);
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/chat` },
-        });
-        if (error) throw error;
-        toast.success('Account created. Signing you in…');
+        // try supabase first
+        try {
+          const { error, data } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: `${window.location.origin}/chat` },
+          });
+          if (error) throw error;
+          // if supabase succeeds, also mirror locally for offline fallback
+          const local = createLocalUser(email, password);
+          if (!local.error) {
+            // mark admin if matches default admin emails? keep as is
+          }
+          toast.success('Account created. Signing you in…');
+          // supabase will auto-sign in or require confirm; if session exists navigate
+          if (data?.session) {
+            // will be handled by useAuth redirect
+            return;
+          }
+          // if no session (confirm required), create local session so user can continue locally
+          const u = validateLocalUser(email, password);
+          if (u) {
+            const sess = createLocalSessionForUser(u);
+            saveLocalSession(sess);
+            window.location.href = '/chat';
+          }
+          return;
+        } catch (supaErr: any) {
+          const msg = supaErr?.message || '';
+          if (isNetworkError(msg) || msg.includes('Failed to fetch')) {
+            // fallback to local
+            const res = createLocalUser(email, password);
+            if (res.error) throw new Error(res.error);
+            const sess = createLocalSessionForUser(res.user!);
+            saveLocalSession(sess);
+            toast.success('Account created locally — offline mode');
+            window.location.href = '/chat';
+            return;
+          }
+          throw supaErr;
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success('Welcome back');
+        // signin
+        try {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          toast.success('Welcome back');
+          return;
+        } catch (supaErr: any) {
+          const msg = supaErr?.message || '';
+          // try local fallback for network or invalid credentials
+          const localUser = validateLocalUser(email, password);
+          if (localUser) {
+            const sess = createLocalSessionForUser(localUser);
+            saveLocalSession(sess);
+            toast.success(`Welcome back, ${localUser.is_admin ? 'admin' : 'user'} — local sign in`);
+            window.location.href = '/chat';
+            return;
+          }
+          if (isNetworkError(msg)) {
+            throw new Error('Network error and no local account found — try signing up first');
+          }
+          throw supaErr;
+        }
       }
     } catch (err: any) {
       const msg = err?.message || 'Authentication failed';
@@ -101,10 +156,10 @@ export default function Auth() {
           <Button type="button" variant="outline" onClick={signInWithGoogle} disabled={oauthBusy}
             className="w-full h-11 rounded-xl font-medium gap-2">
             <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
-              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/>
-              <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4-3.1z"/>
-              <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>{/* allow-hex - Google brand colors */}
+              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/>{/* allow-hex */}
+              <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4-3.1z"/>{/* allow-hex */}
+              <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/>{/* allow-hex */}
             </svg>
             Continue with Google
           </Button>
@@ -162,7 +217,13 @@ export default function Auth() {
           </div>
         </form>
 
-        <p className="text-center text-[11px] text-muted-foreground mt-6">
+        <div className="mt-6 rounded-xl border bg-muted/20 p-3 text-xs">
+          <p className="font-medium">Demo accounts (local, stored in browser):</p>
+          <p className="font-mono text-[11px] mt-1">Admin: <span className="font-semibold">finese_admin@gmail.com</span> / <span className="font-semibold">finese_admin1</span></p>
+          <p className="font-mono text-[11px]">Admin 2: admin@finese.ai / Admin123!</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Sign up creates a local account when Supabase is offline. All data stays in <code>localStorage</code>.</p>
+        </div>
+        <p className="text-center text-[11px] text-muted-foreground mt-4">
           Your datasets are private to your account. <Link to="/" className="hover:text-foreground">Home</Link>
         </p>
       </div>
